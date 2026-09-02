@@ -1,65 +1,98 @@
-# 项目上下文
+# AGENTS.md — COS魔法工坊
+
+## 项目概览
+
+面向COSPLAY服装制作场景的网页版AI工具。浏览器直接访问，PC优先、响应式兼容移动端。
+当前为 V1.0 第一阶段（框架搭建），全部为 mock 数据，未接入真实AI/数据库。
 
 ### 版本技术栈
-
 - **Framework**: Next.js 16 (App Router)
 - **Core**: React 19
 - **Language**: TypeScript 5
-- **UI 组件**: shadcn/ui (基于 Radix UI)
-- **Styling**: Tailwind CSS 4
+- **Styling**: Tailwind CSS 4 + 自定义设计token（二次元魔法工坊风）
+- **状态管理**: React Context（Toast） + localStorage（mock 用户态）
 
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
-├── scripts/                # 构建与启动脚本
-│   ├── build.sh            # 构建脚本
-│   ├── dev.sh              # 开发环境启动脚本
-│   ├── prepare.sh          # 预处理脚本
-│   └── start.sh            # 生产环境启动脚本
-├── src/
-│   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
-│   ├── hooks/              # 自定义 Hooks
-│   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
-│   └── server.ts           # 自定义服务端入口
-├── next.config.ts          # Next.js 配置
-├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+src/
+├── app/
+│   ├── layout.tsx         # 根布局，含 ToastRoot
+│   ├── globals.css        # 全局样式 + 设计token + 星光/魔法阵动效
+│   ├── page.tsx           # 根路径 → redirect /home
+│   ├── login/page.tsx     # 登录页
+│   ├── home/page.tsx      # 工作台主页
+│   ├── analyze/page.tsx   # 服饰鉴定页
+│   ├── draw/page.tsx      # 绘梦工坊页
+│   ├── profile/page.tsx   # 个人中心 / 角色卡
+│   └── admin/page.tsx     # 工会大厅 / 管理端
+├── components/
+│   ├── PageShell.tsx      # 页面外壳（星光背景 + 顶部悬浮导航 + ToastProvider）
+│   ├── GlowButton.tsx     # 发光按钮（primary/accent/ghost/danger 四态）
+│   ├── GlowCard.tsx       # 发光卡片容器
+│   ├── CrystalBadge.tsx   # 体力水晶胶囊
+│   ├── SectionTitle.tsx   # 带霓虹渐变条的小节标题
+│   ├── MagicCircle.tsx    # 旋转魔法阵动画组件
+│   ├── Modal.tsx          # 发光边框模态框
+│   ├── Toast.tsx          # Toast 提示 + Context Provider
+│   ├── ToastRoot.tsx      # 客户端 ToastRoot，供 layout 引入
+│   └── Icons.tsx          # SVG 图标集合
+├── api/
+│   └── mock.ts            # Mock API 层（类型定义 + mock 数据 + 异步函数）
+├── hooks/
+├── lib/
+│   └── utils.ts           # cn 工具函数
+└── server.ts
 ```
 
-- 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+## 设计规范
 
-## 包管理规范
-
-**仅允许使用 pnpm** 作为包管理器，**严禁使用 npm 或 yarn**。
-**常用命令**：
-- 安装依赖：`pnpm add <package>`
-- 安装开发依赖：`pnpm add -D <package>`
-- 安装所有依赖：`pnpm install`
-- 移除依赖：`pnpm remove <package>`
+详见 `DESIGN.md`。
+- 风格：二次元魔法工坊 / 日系手游界面
+- 主色：深夜紫罗兰 #1A1033 + 霓虹粉 #FF3CAC + 电光青 #21E6C1 + 星芒黄 #FFE66D
+- 游戏化措辞：体力水晶、魔力、鉴定、绘梦、角色卡、工会大厅、招募旅者 等
+- **反后台五不做**：无左侧边栏、无密集表格、无灰白商务配色、无CRUD术语、无面板式布局
 
 ## 开发规范
 
-### 编码规范
+- 所有页面使用 `PageShell` 包裹（登录页除外）
+- 页面组件一律 `'use client'`（当前阶段全部客户端渲染 + mock）
+- 复用通用组件，不重复造样式
+- 调用 API 统一走 `@/api/mock`，后续替换实现不改调用方
+- Toast 通过 `useToast()` hook 使用（ToastProvider 已在 layout 顶层）
 
-- 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
-- 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
+## Mock API 接口签名
 
-### next.config 配置规范
+| 函数 | 说明 | 入参 | 出参 |
+|------|------|------|------|
+| `loginApi` | 登录 | account, password | User |
+| `getCurrentUser` | 获取当前用户 | - | User |
+| `getQuota` | 获取额度 | - | {analyzeCount, drawCount} |
+| `submitAnalyze` | 提交服饰鉴定 | imageBase64 | AnalyzeResult |
+| `text2img` | 文生图 | prompt, style | DrawImage |
+| `img2img` | 图生图 | imageBase64, prompt, style | DrawImage |
+| `adminListUsers` | 管理端用户列表 | - | User[] |
+| `adminCreateUser` | 招募旅者 | account,nickname,password,analyzeCount,drawCount | User |
+| `adminUpdateUser` | 编辑角色卡 | id, nickname?, count? | User |
+| `adminAdjustQuota` | 补充魔力 | userId, type, delta | User |
+| `getGlobalConfig` | 工坊法则 | - | GlobalConfig |
+| `updateGlobalConfig` | 更新法则 | Partial<GlobalConfig> | GlobalConfig |
 
-- 配置的路径不要写死绝对路径，必须使用 path.resolve(__dirname, ...)、import.meta.dirname 或 process.cwd() 动态拼接。
+## 构建与启动
 
-### Hydration 问题防范
+```bash
+pnpm install      # 安装依赖
+pnpm dev          # 开发环境（热更新）
+pnpm build        # 生产构建
+pnpm start        # 生产启动
+pnpm ts-check     # TypeScript 类型检查
+pnpm lint         # ESLint 检查
+```
 
-1. 严禁在 JSX 渲染逻辑中直接使用 typeof window、Date.now()、Math.random() 等动态数据。**必须使用 'use client' 并配合 useEffect + useState 确保动态内容仅在客户端挂载后渲染**；同时严禁非法 HTML 嵌套（如 <p> 嵌套 <div>）。
-2. **禁止使用 head 标签**，优先使用 metadata，详见文档：https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-   1. 三方 CSS、字体等资源可在 `globals.css` 中顶部通过 `@import` 引入或使用 next/font
-   2. preload, preconnect, dns-prefetch 通过 ReactDOM 的 preload、preconnect、dns-prefetch 方法引入
-   3. json-ld 可阅读 https://nextjs.org/docs/app/guides/json-ld
+## 后续接入路径
 
-## UI 设计与组件规范 (UI & Styling Standards)
-
-- 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
-- Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+1. **真实鉴权**：替换 `loginApi` 为真实登录，接入 Supabase Auth
+2. **AI 调用**：在 `src/app/api/` 下新建服务端 API route，封装模型调用
+3. **数据库**：Supabase 存储用户、额度、历史记录
+4. **文件上传**：对象存储存上传图和生成图
+5. **支付**：补充魔力的支付对接

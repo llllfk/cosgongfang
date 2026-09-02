@@ -3,135 +3,379 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-  --font-sans:
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif,
-    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  --font-serif:
-    'Noto Serif SC', 'Songti SC', 'SimSun', ui-serif, Georgia, Cambria,
-    'Times New Roman', Times, serif;
-}
-
+/* ========== COS魔法工坊 设计系统 ========== */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* 背景色 */
+  --cos-bg-deep: #0D0820;
+  --cos-bg-main: #1A1033;
+  --cos-bg-light: #2A1B4D;
+  --cos-bg-card: rgba(42, 27, 77, 0.6);
+
+  /* 主色 */
+  --cos-primary: #FF3CAC;
+  --cos-primary-soft: rgba(255, 60, 172, 0.3);
+  --cos-primary-glow: rgba(255, 60, 172, 0.5);
+
+  /* 强调色 */
+  --cos-accent: #21E6C1;
+  --cos-accent-soft: rgba(33, 230, 193, 0.3);
+  --cos-accent-glow: rgba(33, 230, 193, 0.5);
+
+  /* 高亮色 */
+  --cos-highlight: #FFE66D;
+  --cos-highlight-soft: rgba(255, 230, 109, 0.3);
+
+  /* 危险色 */
+  --cos-danger: #FF5577;
+  --cos-danger-soft: rgba(255, 85, 119, 0.3);
+
+  /* 文本 */
+  --cos-text-main: #F5F0FF;
+  --cos-text-sub: #B8AAD4;
+  --cos-text-muted: #7A6B99;
+
+  /* 边框 */
+  --cos-border: rgba(255, 60, 172, 0.25);
+  --cos-border-light: rgba(184, 170, 212, 0.15);
+
+  /* 渐变 */
+  --cos-gradient-primary: linear-gradient(135deg, #FF3CAC 0%, #784BA0 100%);
+  --cos-gradient-title: linear-gradient(90deg, #FF3CAC 0%, #21E6C1 100%);
+  --cos-gradient-card: linear-gradient(135deg, rgba(42, 27, 77, 0.8) 0%, rgba(26, 16, 51, 0.6) 100%);
+
+  /* 阴影发光 */
+  --cos-shadow-card: 0 0 0 1px rgba(255, 60, 172, 0.2), 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 60, 172, 0.1);
+  --cos-shadow-card-hover: 0 0 0 1px rgba(255, 60, 172, 0.5), 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 60, 172, 0.25);
+  --cos-shadow-btn-primary: 0 0 20px rgba(255, 60, 172, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --cos-shadow-btn-accent: 0 0 20px rgba(33, 230, 193, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --cos-shadow-input-focus: 0 0 0 2px rgba(255, 60, 172, 0.5), 0 0 20px rgba(255, 60, 172, 0.3);
+
+  /* 圆角 */
+  --cos-radius-sm: 12px;
+  --cos-radius-md: 20px;
+  --cos-radius-lg: 28px;
+
+  /* 字体 */
+  --cos-font: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@theme inline {
+  --color-background: var(--cos-bg-main);
+  --color-foreground: var(--cos-text-main);
+  --color-primary: var(--cos-primary);
+  --color-accent: var(--cos-accent);
+  --color-muted: var(--cos-bg-light);
+  --color-muted-foreground: var(--cos-text-sub);
+  --color-card: var(--cos-bg-card);
+  --color-card-foreground: var(--cos-text-main);
+  --color-border: var(--cos-border);
+  --color-ring: var(--cos-primary);
+  --color-destructive: var(--cos-danger);
+
+  --font-sans: var(--cos-font);
+
+  --radius-sm: var(--cos-radius-sm);
+  --radius-md: var(--cos-radius-md);
+  --radius-lg: var(--cos-radius-lg);
+  --radius-xl: var(--cos-radius-lg);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* ========== 全局基础样式 ========== */
+* {
+  box-sizing: border-box;
 }
 
+html,
 body {
-  @apply font-sans;
+  margin: 0;
+  padding: 0;
+  background: var(--cos-bg-main);
+  color: var(--cos-text-main);
+  font-family: var(--cos-font);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cos-bg-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cos-primary-soft);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cos-primary);
+}
+
+/* ========== 星光粒子背景 ========== */
+.cos-starry-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(120, 75, 160, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(255, 60, 172, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(33, 230, 193, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #0D0820 0%, #1A1033 50%, #0D0820 100%);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cos-starry-bg::before,
+.cos-starry-bg::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 40% 70%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 60% 20%, rgba(255, 230, 109, 0.7), transparent),
+    radial-gradient(1px 1px at 80% 50%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(2px 2px at 10% 80%, rgba(33, 230, 193, 0.6), transparent),
+    radial-gradient(1px 1px at 90% 10%, rgba(255, 60, 172, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 30% 50%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 70% 90%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 50% 10%, rgba(255, 230, 109, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 15% 15%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 85% 85%, rgba(33, 230, 193, 0.5), transparent),
+    radial-gradient(2px 2px at 45% 45%, rgba(255, 60, 172, 0.4), transparent);
+  background-size: 400px 400px;
+  animation: cos-stars-drift 120s linear infinite;
+  opacity: 0.8;
+}
+
+.cos-starry-bg::after {
+  background-size: 300px 300px;
+  animation-duration: 80s;
+  animation-direction: reverse;
+  opacity: 0.5;
+}
+
+@keyframes cos-stars-drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-400px, -400px); }
+}
+
+/* ========== 魔法阵 ========== */
+.cos-magic-circle {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cos-magic-circle__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--cos-primary-soft);
+  animation: cos-spin 15s linear infinite;
+}
+
+.cos-magic-circle__ring::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px dashed var(--cos-accent-soft);
+  animation: cos-spin 10s linear infinite reverse;
+}
+
+.cos-magic-circle__ring::after {
+  content: '';
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--cos-primary-soft);
+  animation: cos-spin 20s linear infinite;
+}
+
+.cos-magic-circle__rune {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  animation: cos-spin 30s linear infinite reverse;
+}
+
+.cos-magic-circle__rune span {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--cos-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--cos-primary);
+}
+
+.cos-magic-circle__rune span:nth-child(1) { transform: rotate(45deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(2) { transform: rotate(90deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(3) { transform: rotate(135deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(4) { transform: rotate(180deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(5) { transform: rotate(225deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(6) { transform: rotate(270deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(7) { transform: rotate(315deg) translateX(-50%) translateY(-128px); }
+.cos-magic-circle__rune span:nth-child(8) { transform: rotate(360deg) translateX(-50%) translateY(-128px); }
+
+.cos-magic-circle__core {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--cos-primary-soft) 0%, transparent 70%);
+  animation: cos-pulse 2s ease-in-out infinite;
+}
+
+@keyframes cos-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cos-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* 小魔法阵 */
+.cos-magic-circle--sm {
+  width: 160px;
+  height: 160px;
+}
+.cos-magic-circle--sm .cos-magic-circle__rune span {
+  width: 5px;
+  height: 5px;
+}
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(1) { transform: rotate(45deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(2) { transform: rotate(90deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(3) { transform: rotate(135deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(4) { transform: rotate(180deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(5) { transform: rotate(225deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(6) { transform: rotate(270deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(7) { transform: rotate(315deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__rune span:nth-child(8) { transform: rotate(360deg) translateX(-50%) translateY(-72px); }
+.cos-magic-circle--sm .cos-magic-circle__core {
+  width: 48px;
+  height: 48px;
+}
+
+/* ========== 渐变文字 ========== */
+.cos-gradient-text {
+  background: var(--cos-gradient-title);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ========== 浮动动画 ========== */
+@keyframes cos-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.cos-float {
+  animation: cos-float 4s ease-in-out infinite;
+}
+
+/* ========== Toast 滑入 ========== */
+@keyframes cos-toast-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cos-toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(100%); }
+}
+
+.cos-toast-enter {
+  animation: cos-toast-in 0.3s ease-out forwards;
+}
+
+.cos-toast-exit {
+  animation: cos-toast-out 0.3s ease-in forwards;
+}
+
+/* ========== 模态框淡入 ========== */
+@keyframes cos-modal-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.cos-modal-enter {
+  animation: cos-modal-in 0.25s ease-out forwards;
+}
+
+/* ========== 发光浮动卡片 ========== */
+.cos-glow-card {
+  background: var(--cos-gradient-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--cos-border);
+  border-radius: var(--cos-radius-md);
+  box-shadow: var(--cos-shadow-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cos-glow-card:hover {
+  box-shadow: var(--cos-shadow-card-hover);
+  transform: translateY(-4px);
+  border-color: var(--cos-primary-soft);
+}
+
+/* ========== 输入框聚焦发光 ========== */
+.cos-glow-input {
+  background: rgba(13, 8, 32, 0.6);
+  border: 1px solid var(--cos-border-light);
+  border-radius: var(--cos-radius-sm);
+  color: var(--cos-text-main);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.cos-glow-input:focus {
+  border-color: var(--cos-primary);
+  box-shadow: var(--cos-shadow-input-focus);
+}
+
+.cos-glow-input::placeholder {
+  color: var(--cos-text-muted);
+}
+
+/* ========== 胶囊 Tab ========== */
+.cos-tab-capsule {
+  display: inline-flex;
+  padding: 4px;
+  background: rgba(13, 8, 32, 0.6);
+  border: 1px solid var(--cos-border);
+  border-radius: 999px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cos-tab-capsule button {
+  padding: 10px 28px;
+  border-radius: 999px;
+  color: var(--cos-text-sub);
+  font-weight: 500;
+  transition: all 0.25s ease;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cos-tab-capsule button.active {
+  background: var(--cos-gradient-primary);
+  color: white;
+  box-shadow: var(--cos-shadow-btn-primary);
+}
+
+.cos-tab-capsule button:hover:not(.active) {
+  color: var(--cos-text-main);
 }
