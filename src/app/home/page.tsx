@@ -2,17 +2,40 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PageShell } from '@/components/PageShell';
 import { GlowCard } from '@/components/GlowCard';
 import { GlowButton } from '@/components/GlowButton';
 import { SectionTitle } from '@/components/SectionTitle';
 import { CrystalBadge } from '@/components/CrystalBadge';
 import { SparklesIcon, PaletteIcon, GemIcon, ShirtIcon } from '@/components/Icons';
+import { getCurrentUser, type User } from '@/api/client';
 
 export default function HomePage() {
+  const router = useRouter();
+  const [user, setUser] = React.useState<User | null>(null);
+
+  React.useEffect(() => {
+    getCurrentUser()
+      .then(setUser)
+      .catch(() => router.replace('/login'));
+    const onChange = () => {
+      const raw = localStorage.getItem('cos_user');
+      if (raw) {
+        try {
+          setUser(JSON.parse(raw));
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    window.addEventListener('cos-quota-changed', onChange);
+    return () => window.removeEventListener('cos-quota-changed', onChange);
+  }, [router]);
+
   return (
     <PageShell>
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
         {/* Hero 欢迎区 */}
         <section className="text-center mb-16 pt-8">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6 text-sm font-medium"
@@ -23,7 +46,7 @@ export default function HomePage() {
             }}
           >
             <SparklesIcon size={14} />
-            <span>欢迎回来，新旅者</span>
+            <span>欢迎回来，{user?.nickname || '旅者'}</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-4 cos-gradient-text leading-tight">
             COS魔法工坊
@@ -34,8 +57,8 @@ export default function HomePage() {
 
           {/* 体力水晶胶囊展示 */}
           <div className="flex items-center justify-center gap-4 mt-8">
-            <CrystalBadge count={2} label="鉴定魔力" variant="pink" size="lg" />
-            <CrystalBadge count={2} label="绘梦魔力" variant="cyan" size="lg" />
+            <CrystalBadge count={user?.analyzeCount ?? 0} label="鉴定魔力" variant="pink" size="lg" />
+            <CrystalBadge count={user?.drawCount ?? 0} label="绘梦魔力" variant="cyan" size="lg" />
           </div>
         </section>
 

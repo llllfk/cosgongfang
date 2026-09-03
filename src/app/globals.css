@@ -265,6 +265,15 @@ body {
   height: 48px;
 }
 
+/* 空状态：暂停旋转，避免误以为正在鉴定 */
+.cos-magic-circle--paused .cos-magic-circle__ring,
+.cos-magic-circle--paused .cos-magic-circle__ring::before,
+.cos-magic-circle--paused .cos-magic-circle__ring::after,
+.cos-magic-circle--paused .cos-magic-circle__rune,
+.cos-magic-circle--paused .cos-magic-circle__core {
+  animation-play-state: paused;
+}
+
 /* ========== 渐变文字 ========== */
 .cos-gradient-text {
   background: var(--cos-gradient-title);
@@ -360,14 +369,23 @@ body {
 }
 
 .cos-tab-capsule button {
-  padding: 10px 28px;
+  padding: 8px 16px;
   border-radius: 999px;
   color: var(--cos-text-sub);
   font-weight: 500;
+  font-size: 0.8125rem;
   transition: all 0.25s ease;
   border: none;
   background: transparent;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .cos-tab-capsule button {
+    padding: 10px 28px;
+    font-size: 1rem;
+  }
 }
 
 .cos-tab-capsule button.active {
@@ -378,4 +396,25 @@ body {
 
 .cos-tab-capsule button:hover:not(.active) {
   color: var(--cos-text-main);
+}
+
+/* ========== 移动端安全区 ========== */
+.cos-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.cos-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 横向可滚动的 Tab 容器 */
+.cos-tab-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.cos-tab-scroll::-webkit-scrollbar {
+  display: none;
 }

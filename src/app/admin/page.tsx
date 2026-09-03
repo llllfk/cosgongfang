@@ -8,6 +8,9 @@ import { GlowButton } from '@/components/GlowButton';
 import { CrystalBadge } from '@/components/CrystalBadge';
 import { SectionTitle } from '@/components/SectionTitle';
 import { Modal } from '@/components/Modal';
+import { GlowSelect } from '@/components/GlowSelect';
+import { GlowNumberInput } from '@/components/GlowNumberInput';
+import { UsageDetailBody } from '@/components/UsageDetailBody';
 import { useToast } from '@/components/Toast';
 import { SettingsIcon, PlusIcon, EditIcon, UserIcon } from '@/components/Icons';
 import {
@@ -17,8 +20,18 @@ import {
   adminAdjustQuota,
   getGlobalConfig,
   updateGlobalConfig,
-} from '@/api/mock';
-import type { User, GlobalConfig } from '@/api/mock';
+  adminListUsage,
+} from '@/api/client';
+import type { User, GlobalConfig, UsageItem } from '@/api/client';
+import { sanitizeAccountInput, validateAccount } from '@/lib/account';
+
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 16);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
 export default function AdminPage() {
   const { showToast } = useToast();
@@ -30,6 +43,16 @@ export default function AdminPage() {
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [adjustModalOpen, setAdjustModalOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [creating, setCreating] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [adjusting, setAdjusting] = React.useState(false);
+  const [savingConfig, setSavingConfig] = React.useState(false);
+  const [tab, setTab] = React.useState<'users' | 'config' | 'usage'>('users');
+  const [usage, setUsage] = React.useState<UsageItem[]>([]);
+  const [usageLoading, setUsageLoading] = React.useState(false);
+  const [usageType, setUsageType] = React.useState<'all' | 'analyze' | 'draw'>('all');
+  const [usageUserId, setUsageUserId] = React.useState('');
+  const [usageDetail, setUsageDetail] = React.useState<UsageItem | null>(null);
 
   // 表单状态
   const [createForm, setCreateForm] = React.useState({
@@ -39,54 +62,134 @@ export default function AdminPage() {
     analyzeCount: 2,
     drawCount: 2,
   });
-  const [editForm, setEditForm] = React.useState({ nickname: '', analyzeCount: 0, drawCount: 0 });
+  const [editForm, setEditForm] = React.useState({
+    account: '',
+    nickname: '',
+    analyzeCount: 0,
+    drawCount: 0,
+    status: 'active' as 'active' | 'frozen',
+    password: '',
+  });
   const [adjustForm, setAdjustForm] = React.useState({ delta: 5, type: 'analyze' as 'analyze' | 'draw' });
   const [configForm, setConfigForm] = React.useState({ defaultAnalyzeCount: 2, defaultDrawCount: 2 });
 
   // 加载数据
   React.useEffect(() => {
-    adminListUsers().then(setUsers);
-    getGlobalConfig().then((c) => {
-      setConfig(c);
-      setConfigForm(c);
-    });
+    adminListUsers().then(setUsers).catch(() => setUsers([]));
+    getGlobalConfig()
+      .then((c) => {
+        setConfig(c);
+        setConfigForm(c);
+      })
+      .catch(() => {});
   }, []);
+
+  const loadUsage = React.useCallback(async () => {
+    setUsageLoading(true);
+    try {
+      const items = await adminListUsage({
+        type: usageType,
+        userId: usageUserId || undefined,
+      });
+      setUsage(items);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '加载使用记录失败', 'error');
+      setUsage([]);
+    } finally {
+      setUsageLoading(false);
+    }
+  }, [usageType, usageUserId, showToast]);
+
+  React.useEffect(() => {
+    if (tab === 'usage') {
+      loadUsage();
+    }
+  }, [tab, loadUsage]);
 
   // 招募旅者
   const handleCreate = async () => {
+    if (creating) return;
     if (!createForm.account || !createForm.nickname) {
       showToast('请填写账号和昵称', 'error');
       return;
     }
-    const newUser = await adminCreateUser(createForm);
-    setUsers((prev) => [...prev, newUser]);
-    setCreateModalOpen(false);
-    setCreateForm({ account: '', nickname: '', password: '', analyzeCount: 2, drawCount: 2 });
-    showToast('✨ 新旅者已加入工坊！', 'success');
+    try {
+      validateAccount(createForm.account);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '账号格式不正确', 'error');
+      return;
+    }
+    setCreating(true);
+    try {
+      const newUser = await adminCreateUser({
+        ...createForm,
+        account: createForm.account.trim(),
+      });
+      setUsers((prev) => [...prev, newUser]);
+      setCreateModalOpen(false);
+      setCreateForm({ account: '', nickname: '', password: '', analyzeCount: 2, drawCount: 2 });
+      showToast('✨ 新旅者已加入工坊！', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '招募失败', 'error');
+    } finally {
+      setCreating(false);
+    }
   };
 
   // 编辑角色卡
   const openEdit = (user: User) => {
     setSelectedUser(user);
     setEditForm({
+      account: user.account,
       nickname: user.nickname,
       analyzeCount: user.analyzeCount,
       drawCount: user.drawCount,
+      status: user.status,
+      password: '',
     });
     setEditModalOpen(true);
   };
 
   const handleEdit = async () => {
-    if (!selectedUser) return;
-    const updated = await adminUpdateUser({
-      id: selectedUser.id,
-      nickname: editForm.nickname,
-      analyzeCount: editForm.analyzeCount,
-      drawCount: editForm.drawCount,
-    });
-    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-    setEditModalOpen(false);
-    showToast('✦ 角色卡已更新', 'success');
+    if (editing || !selectedUser) return;
+    if (!editForm.nickname.trim()) {
+      showToast('请填写昵称', 'error');
+      return;
+    }
+    try {
+      validateAccount(editForm.account);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '账号格式不正确', 'error');
+      return;
+    }
+    if (editForm.password && editForm.password.length < 6) {
+      showToast('新密码至少 6 位', 'error');
+      return;
+    }
+    setEditing(true);
+    try {
+      const updated = await adminUpdateUser({
+        id: selectedUser.id,
+        account: editForm.account.trim(),
+        nickname: editForm.nickname.trim(),
+        analyzeCount: editForm.analyzeCount,
+        drawCount: editForm.drawCount,
+        status: editForm.status,
+        ...(editForm.password.trim() ? { password: editForm.password.trim() } : {}),
+      });
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setEditModalOpen(false);
+      showToast(
+        editForm.password.trim()
+          ? '✦ 角色卡已更新，密码已重置'
+          : '✦ 角色卡已更新',
+        'success'
+      );
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '保存失败', 'error');
+    } finally {
+      setEditing(false);
+    }
   };
 
   // 补充魔力
@@ -97,45 +200,75 @@ export default function AdminPage() {
   };
 
   const handleAdjust = async () => {
-    if (!selectedUser) return;
-    const updated = await adminAdjustQuota(selectedUser.id, adjustForm.type, adjustForm.delta);
-    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-    setAdjustModalOpen(false);
-    showToast(
-      `💎 已为 ${selectedUser.nickname} 补充 ${adjustForm.delta} 点${
-        adjustForm.type === 'analyze' ? '鉴定' : '绘梦'
-      }魔力`,
-      'success'
-    );
+    if (adjusting || !selectedUser) return;
+    setAdjusting(true);
+    try {
+      const updated = await adminAdjustQuota(selectedUser.id, adjustForm.type, adjustForm.delta);
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setAdjustModalOpen(false);
+      showToast(
+        `💎 已为 ${selectedUser.nickname} 补充 ${adjustForm.delta} 点${
+          adjustForm.type === 'analyze' ? '鉴定' : '绘梦'
+        }魔力`,
+        'success'
+      );
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '补充失败', 'error');
+    } finally {
+      setAdjusting(false);
+    }
   };
 
   // 全局配置保存
   const handleConfigSave = async () => {
-    const newConfig = await updateGlobalConfig(configForm);
-    setConfig(newConfig);
-    showToast('⚙️ 工坊法则已更新', 'success');
+    if (savingConfig) return;
+    setSavingConfig(true);
+    try {
+      const newConfig = await updateGlobalConfig(configForm);
+      setConfig(newConfig);
+      showToast('⚙️ 工坊法则已更新', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '保存失败', 'error');
+    } finally {
+      setSavingConfig(false);
+    }
   };
 
   return (
     <PageShell>
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* 页面标题 + 返回 */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
           <SectionTitle
             title="工会大厅"
             subtitle="管理员专属空间，管理旅者与工坊法则"
             icon={<SettingsIcon size={22} className="text-[#FFE66D]" />}
           />
-          <Link href="/home">
-            <GlowButton variant="ghost" size="sm">
+          <Link href="/home" className="flex-shrink-0">
+            <GlowButton variant="ghost" size="sm" className="w-full sm:w-auto">
               ← 返回工坊
             </GlowButton>
           </Link>
         </div>
 
+        <div className="flex justify-center mb-6 sm:mb-8 cos-tab-scroll px-1">
+          <div className="cos-tab-capsule flex-shrink-0">
+            <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>
+              旅者
+            </button>
+            <button className={tab === 'config' ? 'active' : ''} onClick={() => setTab('config')}>
+              法则
+            </button>
+            <button className={tab === 'usage' ? 'active' : ''} onClick={() => setTab('usage')}>
+              记录
+            </button>
+          </div>
+        </div>
+
         {/* 用户管理区 */}
+        {tab === 'users' ? (
         <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
             <div>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <UserIcon size={20} className="text-[#FF3CAC]" />
@@ -143,7 +276,7 @@ export default function AdminPage() {
               </h2>
               <p className="text-sm text-[#7A6B99] mt-1">共 {users.length} 位旅者</p>
             </div>
-            <GlowButton onClick={() => setCreateModalOpen(true)} icon={<PlusIcon size={16} />}>
+            <GlowButton onClick={() => setCreateModalOpen(true)} icon={<PlusIcon size={16} />} className="w-full sm:w-auto">
               招募旅者
             </GlowButton>
           </div>
@@ -177,7 +310,7 @@ export default function AdminPage() {
                       <h3 className="font-bold text-white truncate">{user.nickname}</h3>
                       {user.status === 'frozen' && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,85,119,0.2)] text-[#FF8FA0] border border-[rgba(255,85,119,0.3)]">
-                          冻结
+                          停用
                         </span>
                       )}
                       {user.isAdmin && (
@@ -217,8 +350,10 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
+        ) : null}
 
         {/* 工坊法则区 */}
+        {tab === 'config' ? (
         <div>
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <SettingsIcon size={20} className="text-[#21E6C1]" />
@@ -233,17 +368,12 @@ export default function AdminPage() {
                   新旅者默认鉴定次数
                 </label>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="number"
+                  <GlowNumberInput
                     value={configForm.defaultAnalyzeCount}
-                    onChange={(e) =>
-                      setConfigForm((p) => ({
-                        ...p,
-                        defaultAnalyzeCount: Math.max(0, parseInt(e.target.value) || 0),
-                      }))
-                    }
-                    className="cos-glow-input w-32 px-4 py-2.5 text-center font-bold text-lg"
+                    onChange={(v) => setConfigForm((p) => ({ ...p, defaultAnalyzeCount: v }))}
                     min={0}
+                    size="lg"
+                    className="w-32"
                   />
                   <span className="text-sm text-[#B8AAD4]">次 / 新旅者</span>
                 </div>
@@ -254,30 +384,152 @@ export default function AdminPage() {
                   新旅者默认绘梦次数
                 </label>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="number"
+                  <GlowNumberInput
                     value={configForm.defaultDrawCount}
-                    onChange={(e) =>
-                      setConfigForm((p) => ({
-                        ...p,
-                        defaultDrawCount: Math.max(0, parseInt(e.target.value) || 0),
-                      }))
-                    }
-                    className="cos-glow-input w-32 px-4 py-2.5 text-center font-bold text-lg"
+                    onChange={(v) => setConfigForm((p) => ({ ...p, defaultDrawCount: v }))}
                     min={0}
+                    size="lg"
+                    className="w-32"
                   />
                   <span className="text-sm text-[#B8AAD4]">次 / 新旅者</span>
                 </div>
               </div>
 
               <div className="pt-2 flex justify-end">
-                <GlowButton variant="accent" onClick={handleConfigSave}>
-                  保存法则
+                <GlowButton variant="accent" onClick={handleConfigSave} loading={savingConfig}>
+                  {savingConfig ? '保存中…' : '保存法则'}
                 </GlowButton>
               </div>
             </div>
           </GlowCard>
         </div>
+        ) : null}
+
+        {/* 全员使用记录 */}
+        {tab === 'usage' ? (
+          <div className="mb-8">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  📜 使用记录
+                </h2>
+                <p className="text-sm text-[#7A6B99] mt-1">
+                  查询全部旅者的鉴定 / 绘梦使用情况（共 {usage.length} 条）
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 items-center">
+                <GlowSelect
+                  value={usageType}
+                  onChange={(v) => setUsageType(v as 'all' | 'analyze' | 'draw')}
+                  options={[
+                    { value: 'all', label: '全部功能' },
+                    { value: 'analyze', label: '仅鉴定' },
+                    { value: 'draw', label: '仅绘梦' },
+                  ]}
+                />
+                <GlowSelect
+                  value={usageUserId}
+                  onChange={setUsageUserId}
+                  className="min-w-[180px]"
+                  options={[
+                    { value: '', label: '全部旅者' },
+                    ...users.map((u) => ({
+                      value: u.id,
+                      label: `${u.nickname} (@${u.account})`,
+                    })),
+                  ]}
+                />
+                <GlowButton
+                  variant="ghost"
+                  size="sm"
+                  loading={usageLoading}
+                  onClick={loadUsage}
+                >
+                  刷新
+                </GlowButton>
+              </div>
+            </div>
+
+            {usageLoading ? (
+              <GlowCard hoverable={false} className="p-10 text-center text-[#B8AAD4]">
+                记录读取中…
+              </GlowCard>
+            ) : usage.length === 0 ? (
+              <GlowCard hoverable={false} className="p-10 text-center text-[#B8AAD4]">
+                暂无匹配的使用记录
+              </GlowCard>
+            ) : (
+              <div className="space-y-3">
+                {usage.map((item) => (
+                  <button
+                    key={`${item.type}-${item.id}`}
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => setUsageDetail(item)}
+                  >
+                    <GlowCard
+                      glowColor={item.type === 'analyze' ? 'pink' : 'cyan'}
+                      className="p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        {(item.type === 'analyze'
+                          ? item.inputImageUrl
+                          : item.imageUrl || item.refImageUrls?.[0]) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={
+                              item.type === 'analyze'
+                                ? item.inputImageUrl
+                                : item.imageUrl || item.refImageUrls?.[0]
+                            }
+                            alt=""
+                            className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-[rgba(255,60,172,0.25)]"
+                          />
+                        ) : (
+                          <div
+                            className="w-14 h-14 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                            style={{
+                              background:
+                                item.type === 'analyze'
+                                  ? 'rgba(255,60,172,0.15)'
+                                  : 'rgba(33,230,193,0.15)',
+                              border:
+                                item.type === 'analyze'
+                                  ? '1px solid rgba(255,60,172,0.35)'
+                                  : '1px solid rgba(33,230,193,0.35)',
+                            }}
+                          >
+                            {item.type === 'analyze' ? '🔮' : '🎨'}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="font-bold text-white text-sm">
+                              {item.nickname || '未知旅者'}
+                            </span>
+                            <span className="text-[11px] text-[#7A6B99]">
+                              @{item.account}
+                            </span>
+                            <span className="text-[11px] text-[#7A6B99]">
+                              {formatTime(item.createdAt)}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(255,230,109,0.12)] text-[#FFE66D] border border-[rgba(255,230,109,0.25)]">
+                              {item.type === 'analyze' ? '鉴定 -1' : '绘梦 -1'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#B8AAD4] line-clamp-2">{item.summary}</p>
+                          {item.detail ? (
+                            <p className="text-xs text-[#7A6B99] mt-1">{item.detail}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </GlowCard>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* 招募旅者模态框 */}
@@ -287,10 +539,12 @@ export default function AdminPage() {
         title="招募新旅者"
         footer={
           <>
-            <GlowButton variant="ghost" onClick={() => setCreateModalOpen(false)}>
+            <GlowButton variant="ghost" onClick={() => setCreateModalOpen(false)} disabled={creating}>
               取消
             </GlowButton>
-            <GlowButton onClick={handleCreate}>确认招募</GlowButton>
+            <GlowButton onClick={handleCreate} loading={creating}>
+              {creating ? '招募中…' : '确认招募'}
+            </GlowButton>
           </>
         }
       >
@@ -300,10 +554,17 @@ export default function AdminPage() {
             <input
               type="text"
               value={createForm.account}
-              onChange={(e) => setCreateForm((p) => ({ ...p, account: e.target.value }))}
-              placeholder="输入登录账号"
+              onChange={(e) =>
+                setCreateForm((p) => ({ ...p, account: sanitizeAccountInput(e.target.value) }))
+              }
+              placeholder="仅字母或数字，如 hoshino01"
               className="cos-glow-input w-full px-4 py-2.5"
+              autoComplete="off"
+              spellCheck={false}
+              inputMode="latin"
+              maxLength={32}
             />
+            <p className="text-xs text-[#7A6B99] mt-1.5">仅支持英文字母或数字，不能含中文和特殊字符</p>
           </div>
           <div>
             <label className="block text-sm text-[#B8AAD4] mb-2">昵称</label>
@@ -328,31 +589,17 @@ export default function AdminPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#B8AAD4] mb-2">鉴定次数</label>
-              <input
-                type="number"
+              <GlowNumberInput
                 value={createForm.analyzeCount}
-                onChange={(e) =>
-                  setCreateForm((p) => ({
-                    ...p,
-                    analyzeCount: Math.max(0, parseInt(e.target.value) || 0),
-                  }))
-                }
-                className="cos-glow-input w-full px-4 py-2.5 text-center"
+                onChange={(v) => setCreateForm((p) => ({ ...p, analyzeCount: v }))}
                 min={0}
               />
             </div>
             <div>
               <label className="block text-sm text-[#B8AAD4] mb-2">绘梦次数</label>
-              <input
-                type="number"
+              <GlowNumberInput
                 value={createForm.drawCount}
-                onChange={(e) =>
-                  setCreateForm((p) => ({
-                    ...p,
-                    drawCount: Math.max(0, parseInt(e.target.value) || 0),
-                  }))
-                }
-                className="cos-glow-input w-full px-4 py-2.5 text-center"
+                onChange={(v) => setCreateForm((p) => ({ ...p, drawCount: v }))}
                 min={0}
               />
             </div>
@@ -367,16 +614,31 @@ export default function AdminPage() {
         title="编辑角色卡"
         footer={
           <>
-            <GlowButton variant="ghost" onClick={() => setEditModalOpen(false)}>
+            <GlowButton variant="ghost" onClick={() => setEditModalOpen(false)} disabled={editing}>
               取消
             </GlowButton>
-            <GlowButton variant="accent" onClick={handleEdit}>
-              保存修改
+            <GlowButton variant="accent" onClick={handleEdit} loading={editing}>
+              {editing ? '保存中…' : '保存修改'}
             </GlowButton>
           </>
         }
       >
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-[#B8AAD4] mb-2">账号</label>
+            <input
+              type="text"
+              value={editForm.account}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, account: sanitizeAccountInput(e.target.value) }))
+              }
+              className="cos-glow-input w-full px-4 py-2.5"
+              placeholder="字母或数字，至少 3 位"
+              inputMode="latin"
+              autoComplete="off"
+            />
+            <p className="text-xs text-[#7A6B99] mt-1.5">修改后旅者需用新账号登录</p>
+          </div>
           <div>
             <label className="block text-sm text-[#B8AAD4] mb-2">昵称</label>
             <input
@@ -384,36 +646,58 @@ export default function AdminPage() {
               value={editForm.nickname}
               onChange={(e) => setEditForm((p) => ({ ...p, nickname: e.target.value }))}
               className="cos-glow-input w-full px-4 py-2.5"
+              placeholder="旅者昵称"
             />
+          </div>
+          <div>
+            <label className="block text-sm text-[#B8AAD4] mb-2">
+              重置密码<span className="text-[#7A6B99] font-normal">（留空则不改）</span>
+            </label>
+            <input
+              type="password"
+              value={editForm.password}
+              onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))}
+              className="cos-glow-input w-full px-4 py-2.5"
+              placeholder="至少 6 位新密码"
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-[#B8AAD4] mb-2">账户状态</label>
+            <div className="cos-tab-capsule w-full">
+              <button
+                type="button"
+                className={'flex-1 ' + (editForm.status === 'active' ? 'active' : '')}
+                onClick={() => setEditForm((p) => ({ ...p, status: 'active' }))}
+              >
+                正常启用
+              </button>
+              <button
+                type="button"
+                className={'flex-1 ' + (editForm.status === 'frozen' ? 'active' : '')}
+                onClick={() => setEditForm((p) => ({ ...p, status: 'frozen' }))}
+              >
+                停用账户
+              </button>
+            </div>
+            <p className="text-xs text-[#7A6B99] mt-2">
+              停用后该旅者将无法登录工坊（不能停用自己）。
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#B8AAD4] mb-2">鉴定次数</label>
-              <input
-                type="number"
+              <GlowNumberInput
                 value={editForm.analyzeCount}
-                onChange={(e) =>
-                  setEditForm((p) => ({
-                    ...p,
-                    analyzeCount: Math.max(0, parseInt(e.target.value) || 0),
-                  }))
-                }
-                className="cos-glow-input w-full px-4 py-2.5 text-center"
+                onChange={(v) => setEditForm((p) => ({ ...p, analyzeCount: v }))}
                 min={0}
               />
             </div>
             <div>
               <label className="block text-sm text-[#B8AAD4] mb-2">绘梦次数</label>
-              <input
-                type="number"
+              <GlowNumberInput
                 value={editForm.drawCount}
-                onChange={(e) =>
-                  setEditForm((p) => ({
-                    ...p,
-                    drawCount: Math.max(0, parseInt(e.target.value) || 0),
-                  }))
-                }
-                className="cos-glow-input w-full px-4 py-2.5 text-center"
+                onChange={(v) => setEditForm((p) => ({ ...p, drawCount: v }))}
                 min={0}
               />
             </div>
@@ -428,10 +712,12 @@ export default function AdminPage() {
         title={`为 ${selectedUser?.nickname || ''} 补充魔力`}
         footer={
           <>
-            <GlowButton variant="ghost" onClick={() => setAdjustModalOpen(false)}>
+            <GlowButton variant="ghost" onClick={() => setAdjustModalOpen(false)} disabled={adjusting}>
               取消
             </GlowButton>
-            <GlowButton onClick={handleAdjust}>确认补充</GlowButton>
+            <GlowButton onClick={handleAdjust} loading={adjusting}>
+              {adjusting ? '补充中…' : '确认补充'}
+            </GlowButton>
           </>
         }
       >
@@ -455,17 +741,11 @@ export default function AdminPage() {
           </div>
           <div>
             <label className="block text-sm text-[#B8AAD4] mb-2">补充数量</label>
-            <input
-              type="number"
+            <GlowNumberInput
               value={adjustForm.delta}
-              onChange={(e) =>
-                setAdjustForm((p) => ({
-                  ...p,
-                  delta: Math.max(1, parseInt(e.target.value) || 1),
-                }))
-              }
-              className="cos-glow-input w-full px-4 py-3 text-center font-bold text-xl"
+              onChange={(v) => setAdjustForm((p) => ({ ...p, delta: v }))}
               min={1}
+              size="lg"
             />
           </div>
           <p className="text-xs text-[#7A6B99] text-center">
@@ -481,6 +761,29 @@ export default function AdminPage() {
             </span>
           </p>
         </div>
+      </Modal>
+
+      <Modal
+        open={!!usageDetail}
+        onClose={() => setUsageDetail(null)}
+        title={usageDetail?.type === 'analyze' ? '鉴定使用详情' : '绘梦使用详情'}
+        className="max-w-2xl"
+        footer={
+          <GlowButton variant="ghost" size="sm" onClick={() => setUsageDetail(null)}>
+            关闭
+          </GlowButton>
+        }
+      >
+        {usageDetail ? (
+          <UsageDetailBody
+            item={usageDetail}
+            meta={
+              <p className="text-[#7A6B99]">
+                {usageDetail.nickname} @{usageDetail.account} · {formatTime(usageDetail.createdAt)}
+              </p>
+            }
+          />
+        ) : null}
       </Modal>
     </PageShell>
   );

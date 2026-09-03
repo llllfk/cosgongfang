@@ -8,8 +8,9 @@ import { MagicCircle } from '@/components/MagicCircle';
 import { SectionTitle } from '@/components/SectionTitle';
 import { useToast } from '@/components/Toast';
 import { UploadIcon, ShirtIcon, ScissorsIcon, PaletteIcon } from '@/components/Icons';
-import type { AnalyzeResult } from '@/api/mock';
-import { submitAnalyze } from '@/api/mock';
+import type { AnalyzeResult } from '@/api/client';
+import { submitAnalyze, getQuota } from '@/api/client';
+import { compressImageFile, compressImageDataUrl } from '@/lib/image-compress';
 
 // 7个维度配置
 const DIMENSIONS = [
@@ -28,55 +29,116 @@ export default function AnalyzePage() {
   const [dragOver, setDragOver] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState<AnalyzeResult | null>(null);
+  const [analyzeCount, setAnalyzeCount] = React.useState(0);
+  const [quotaError, setQuotaError] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const submittingRef = React.useRef(false);
 
-  const handleFile = (file: File) => {
+  const syncAnalyzeQuota = React.useCallback(() => {
+    const a = localStorage.getItem('cos_analyze_count');
+    if (a != null) setAnalyzeCount(Math.max(0, parseInt(a, 10) || 0));
+  }, []);
+
+  React.useEffect(() => {
+    syncAnalyzeQuota();
+    getQuota()
+      .then((q) => setAnalyzeCount(q.analyzeCount))
+      .catch(() => syncAnalyzeQuota());
+    const onChange = () => syncAnalyzeQuota();
+    window.addEventListener('cos-quota-changed', onChange);
+    return () => window.removeEventListener('cos-quota-changed', onChange);
+  }, [syncAnalyzeQuota]);
+
+  const handleFile = async (file: File) => {
+    if (loading) return;
     if (!file.type.startsWith('image/')) {
       showToast('请上传图片文件', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
+    try {
+      const dataUrl = await compressImageFile(file, { maxEdge: 1536, quality: 0.82 });
+      setImagePreview(dataUrl);
       setResult(null);
-    };
-    reader.readAsDataURL(file);
+      setQuotaError(null);
+    } catch {
+      showToast('图片压缩失败，请换一张再试', 'error');
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    if (loading) return;
     const file = e.dataTransfer.files?.[0];
     if (file) handleFile(file);
   };
 
   const handleAnalyze = async () => {
+    if (loading || submittingRef.current) return;
     if (!imagePreview) {
       showToast('请先上传角色图片', 'error');
       return;
     }
-    setLoading(true);
+
+    let remain = analyzeCount;
     try {
-      const data = await submitAnalyze({ imageBase64: imagePreview });
-      setResult(data);
-      showToast('✨ 服饰鉴定完成！', 'success');
+      const q = await getQuota();
+      remain = q.analyzeCount;
+      setAnalyzeCount(q.analyzeCount);
     } catch {
-      showToast('鉴定失败，请重试', 'error');
+      syncAnalyzeQuota();
+      remain = Number(localStorage.getItem('cos_analyze_count') || analyzeCount);
+    }
+    if (remain <= 0) {
+      const message = '鉴定魔力不足，请联系管理员补充后再试。';
+      setQuotaError(message);
+      showToast(message, 'error');
+      return;
+    }
+
+    submittingRef.current = true;
+    setLoading(true);
+    setQuotaError(null);
+    try {
+      const storeImageBase64 = await compressImageDataUrl(imagePreview, {
+        maxEdge: 720,
+        quality: 0.7,
+      });
+      const data = await submitAnalyze({
+        imageBase64: imagePreview,
+        storeImageBase64,
+      });
+      setResult(data);
+      if (data.imageUrl) {
+        setImagePreview(data.imageUrl);
+      }
+      syncAnalyzeQuota();
+      showToast('✨ 服饰鉴定完成！', 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '鉴定失败，请重试';
+      setQuotaError(message);
+      showToast(message, 'error');
+      getQuota()
+        .then((q) => setAnalyzeCount(q.analyzeCount))
+        .catch(() => syncAnalyzeQuota());
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleReset = () => {
+    if (loading) return;
     setImagePreview(null);
     setResult(null);
+    setQuotaError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
     <PageShell>
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionTitle
           title="服饰鉴定"
           subtitle="上传角色图，AI拆解服饰的全部秘密"
@@ -100,10 +162,13 @@ export default function AnalyzePage() {
                     : 'border-[rgba(255,60,172,0.3)] bg-[rgba(13,8,32,0.4)] hover:border-[rgba(255,60,172,0.5)]')
                 }
                 style={{ minHeight: 280 }}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  if (loading) return;
+                  fileInputRef.current?.click();
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
-                  setDragOver(true);
+                  if (!loading) setDragOver(true);
                 }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
@@ -138,7 +203,7 @@ export default function AnalyzePage() {
                       <UploadIcon size={28} className="text-[#FF3CAC]" />
                     </div>
                     <p className="text-white font-medium mb-1">点击或拖拽上传</p>
-                    <p className="text-xs text-[#7A6B99]">支持 JPG / PNG / WEBP 格式</p>
+                    <p className="text-xs text-[#7A6B99]">支持 JPG / PNG / WEBP，上传后自动压缩</p>
                     <p className="text-xs text-[#7A6B99] mt-2">建议使用全身图，鉴定效果最佳</p>
                   </div>
                 )}
@@ -160,20 +225,39 @@ export default function AnalyzePage() {
                   className="flex-1"
                   onClick={handleAnalyze}
                   loading={loading}
-                  disabled={!imagePreview}
+                  disabled={!imagePreview || analyzeCount <= 0}
                 >
-                  {loading ? '魔法阵运转中…' : '开始鉴定'}
+                  {loading ? '魔法阵运转中…' : analyzeCount <= 0 ? '魔力不足' : '开始鉴定'}
                 </GlowButton>
                 {imagePreview && (
-                  <GlowButton variant="ghost" onClick={handleReset}>
+                  <GlowButton variant="ghost" onClick={handleReset} disabled={loading}>
                     重置
                   </GlowButton>
                 )}
               </div>
 
-              <div className="mt-4 text-xs text-[#7A6B99] flex items-center gap-1.5">
-                <span>💎</span>
-                <span>每次鉴定消耗 1 点鉴定魔力</span>
+              {analyzeCount <= 0 && (
+                <div className="mt-4 rounded-xl px-3 py-2 border border-[rgba(255,85,119,0.35)] bg-[rgba(255,85,119,0.1)] text-xs text-[#FFB3C0]">
+                  鉴定魔力已用完，请联系管理员补充。
+                </div>
+              )}
+              {quotaError && (
+                <div className="mt-3 rounded-xl px-3 py-2 border border-[rgba(255,85,119,0.35)] bg-[rgba(255,85,119,0.1)] text-xs text-[#FFB3C0] flex gap-2">
+                  <span className="flex-1">{quotaError}</span>
+                  <button type="button" className="text-[#7A6B99]" onClick={() => setQuotaError(null)}>
+                    关闭
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-4 text-xs text-[#7A6B99] flex flex-col gap-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <span>💎</span>
+                  每次鉴定消耗 1 点鉴定魔力
+                </span>
+                <span className={analyzeCount <= 0 ? 'text-[#FFB3C0]' : 'text-[#FF3CAC]'}>
+                  当前剩余：{analyzeCount} 点
+                </span>
               </div>
             </GlowCard>
           </div>
@@ -188,13 +272,21 @@ export default function AnalyzePage() {
 
               {loading && (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <MagicCircle text="魔法阵运转中，正在解析服饰…" />
+                  <MagicCircle active text="魔法阵运转中，正在解析服饰…" />
                 </div>
               )}
 
               {!loading && !result && (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <MagicCircle size="md" text="上传角色图后，召唤魔法阵开始鉴定" />
+                  <MagicCircle
+                    size="md"
+                    active={false}
+                    text={
+                      imagePreview
+                        ? '图片已就绪，点击左侧「开始鉴定」'
+                        : '上传角色图后，再点击「开始鉴定」'
+                    }
+                  />
                 </div>
               )}
 

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { GlowButton } from '@/components/GlowButton';
-import { loginApi } from '@/api/mock';
+import { loginApi } from '@/api/client';
 import { SparklesIcon } from '@/components/Icons';
 
 export default function LoginPage() {
@@ -11,28 +11,31 @@ export default function LoginPage() {
   const [account, setAccount] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account.trim()) return;
+    if (loading) return;
+    if (!account.trim() || !password) {
+      setError('请输入账号和密码');
+      return;
+    }
     setLoading(true);
+    setError('');
     try {
-      const user = await loginApi(account, password);
-      localStorage.setItem('cos_user', JSON.stringify(user));
-      localStorage.setItem('cos_analyze_count', String(user.analyzeCount));
-      localStorage.setItem('cos_draw_count', String(user.drawCount));
+      await loginApi(account.trim(), password);
       router.push('/home');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '登录失败');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-6 overflow-hidden">
-      {/* 星光背景 */}
+    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden cos-safe-top cos-safe-bottom">
       <div className="cos-starry-bg" />
 
-      {/* 装饰魔法阵 - 左侧 */}
       <div className="absolute left-[-100px] top-1/2 -translate-y-1/2 opacity-30 pointer-events-none hidden lg:block">
         <div className="cos-magic-circle" style={{ width: 400, height: 400 }}>
           <div className="cos-magic-circle__ring" />
@@ -45,7 +48,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 装饰魔法阵 - 右侧 */}
       <div className="absolute right-[-80px] top-1/4 opacity-20 pointer-events-none hidden lg:block">
         <div className="cos-magic-circle cos-magic-circle--sm">
           <div className="cos-magic-circle__ring" />
@@ -58,7 +60,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 登录卡片 */}
       <div className="relative z-10 w-full max-w-md">
         <div
           className="rounded-[32px] p-8 md:p-10 backdrop-blur-xl"
@@ -70,9 +71,9 @@ export default function LoginPage() {
               '0 0 60px rgba(255, 60, 172, 0.2), 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           }}
         >
-          {/* Logo & 标题 */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 cos-float"
+            <div
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 cos-float"
               style={{
                 background: 'linear-gradient(135deg, rgba(255, 60, 172, 0.2), rgba(33, 230, 193, 0.2))',
                 border: '1px solid rgba(255, 60, 172, 0.4)',
@@ -81,15 +82,10 @@ export default function LoginPage() {
             >
               <SparklesIcon size={32} className="text-[#FF3CAC]" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold cos-gradient-text mb-2">
-              COS魔法工坊
-            </h1>
-            <p className="text-sm text-[#B8AAD4]">
-              ✦ 二次元服饰鉴定 · 绘梦设计工坊 ✦
-            </p>
+            <h1 className="text-3xl md:text-4xl font-bold cos-gradient-text mb-2">COS魔法工坊</h1>
+            <p className="text-sm text-[#B8AAD4]">✦ 二次元服饰鉴定 · 绘梦设计工坊 ✦</p>
           </div>
 
-          {/* 表单 */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">
@@ -99,7 +95,7 @@ export default function LoginPage() {
                 type="text"
                 value={account}
                 onChange={(e) => setAccount(e.target.value)}
-                placeholder="输入你的工坊账号"
+                placeholder="例如 hoshino / admin"
                 className="cos-glow-input w-full px-4 py-3 text-base"
               />
             </div>
@@ -112,30 +108,27 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="输入你的专属密语"
+                placeholder="输入密码"
                 className="cos-glow-input w-full px-4 py-3 text-base"
               />
             </div>
 
+            {error ? (
+              <p className="text-sm text-[#FF3CAC] text-center">{error}</p>
+            ) : null}
+
             <GlowButton type="submit" size="lg" loading={loading} className="w-full mt-6">
-              进入魔法工坊
+              {loading ? '进入中…' : '进入魔法工坊'}
             </GlowButton>
           </form>
 
-          {/* 分割线 */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-[rgba(255,60,172,0.3)]" />
-            <span className="text-xs text-[#7A6B99]">或</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-[rgba(255,60,172,0.3)]" />
-          </div>
-
-          <p className="text-center text-xs text-[#7A6B99] leading-relaxed">
-            💫 任意账号 + 任意密码均可登录体验<br />
-            新旅者首次降临，赠送 2次鉴定 + 2次绘梦 魔力
+          <p className="text-center text-xs text-[#7A6B99] leading-relaxed mt-6">
+            测试账号：<span className="text-[#21E6C1]">hoshino / 123456</span>
+            <br />
+            管理员：<span className="text-[#FFE66D]">admin / admin123</span>
           </p>
         </div>
 
-        {/* 底部 slogan */}
         <p className="text-center mt-6 text-sm text-[#7A6B99]">
           ✦ 用魔法拆解二次元，用针线织就热爱 ✦
         </p>

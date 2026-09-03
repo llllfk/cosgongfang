@@ -37,8 +37,15 @@ export const GlowButton = React.forwardRef<HTMLButtonElement, GlowButtonProps>(
     return (
       <button
         ref={ref}
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        className={cn(
+          baseStyles,
+          variants[variant],
+          sizes[size],
+          loading && 'pointer-events-none',
+          className
+        )}
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
         {...props}
       >
         {loading ? (

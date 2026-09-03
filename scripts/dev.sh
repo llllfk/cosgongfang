@@ -29,6 +29,13 @@ kill_port_if_listening() {
 
 echo "Clearing port ${DEPLOY_RUN_PORT} before start."
 kill_port_if_listening
+
+# Next 异常退出时会残留开发锁
+if [[ -f "${COZE_WORKSPACE_PATH}/.next/dev/lock" ]]; then
+  echo "Removing stale .next/dev/lock"
+  rm -f "${COZE_WORKSPACE_PATH}/.next/dev/lock"
+fi
+
 echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for dev..."
 
 PORT=${DEPLOY_RUN_PORT} pnpm tsx watch src/server.ts
