@@ -561,7 +561,7 @@ export default function AdminPage() {
               className="cos-glow-input w-full px-4 py-2.5"
               autoComplete="off"
               spellCheck={false}
-              inputMode="latin"
+              inputMode="text"
               maxLength={32}
             />
             <p className="text-xs text-[#7A6B99] mt-1.5">仅支持英文字母或数字，不能含中文和特殊字符</p>
@@ -634,7 +634,7 @@ export default function AdminPage() {
               }
               className="cos-glow-input w-full px-4 py-2.5"
               placeholder="字母或数字，至少 3 位"
-              inputMode="latin"
+              inputMode="text"
               autoComplete="off"
             />
             <p className="text-xs text-[#7A6B99] mt-1.5">修改后旅者需用新账号登录</p>
