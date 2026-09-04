@@ -148,8 +148,8 @@ export default function AnalyzePage() {
 
         <div className="grid lg:grid-cols-5 gap-6 mt-8 lg:items-stretch">
           {/* 左栏：上传区 */}
-          <div className="lg:col-span-2 flex">
-            <GlowCard glowColor="pink" hoverable={false} className="p-6 w-full h-full flex flex-col">
+          <div className="lg:col-span-2 flex min-h-0">
+            <GlowCard glowColor="pink" hoverable={false} className="p-6 w-full h-full flex flex-col overflow-hidden">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <UploadIcon size={18} className="text-[#FF3CAC]" />
                 上传角色图
@@ -262,9 +262,13 @@ export default function AnalyzePage() {
             </GlowCard>
           </div>
 
-          {/* 右栏：鉴定书展示区 */}
-          <div className="lg:col-span-3 flex">
-            <GlowCard glowColor="cyan" hoverable={false} className="p-6 w-full h-full flex flex-col min-h-[500px] lg:min-h-0">
+          {/* 右栏：鉴定书展示区（限高 + 内部滚动，避免结果无限拉高） */}
+          <div className="lg:col-span-3 flex min-h-0">
+            <GlowCard
+              glowColor="cyan"
+              hoverable={false}
+              className="p-6 w-full flex flex-col overflow-hidden min-h-[500px] max-h-[min(720px,calc(100dvh-200px))]"
+            >
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 shrink-0">
                 <ScissorsIcon size={18} className="text-[#21E6C1]" />
                 服饰鉴定书
@@ -291,7 +295,7 @@ export default function AnalyzePage() {
               )}
 
               {!loading && result && (
-                <div className="flex-1 space-y-4 overflow-y-auto pr-2 min-h-0">
+                <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pr-2 min-h-0">
                   {DIMENSIONS.map((dim) => {
                     const items = (result as any)[dim.key] as string[] | { name: string; hex: string }[];
                     return (
