@@ -101,12 +101,13 @@ export default function AnalyzePage() {
     setLoading(true);
     setQuotaError(null);
     try {
-      const storeImageBase64 = await compressImageDataUrl(imagePreview, {
-        maxEdge: 720,
-        quality: 0.7,
-      });
+      // 识图用中等分辨率即可（过大 base64 会显著拖慢 Ark）
+      const [visionImage, storeImageBase64] = await Promise.all([
+        compressImageDataUrl(imagePreview, { maxEdge: 1024, quality: 0.78 }),
+        compressImageDataUrl(imagePreview, { maxEdge: 720, quality: 0.7 }),
+      ]);
       const data = await submitAnalyze({
-        imageBase64: imagePreview,
+        imageBase64: visionImage,
         storeImageBase64,
       });
       setResult(data);

@@ -197,8 +197,8 @@ export async function submitAnalyze(params: SubmitAnalyzeParams): Promise<Analyz
         imageBase64: params.imageBase64,
         storeImageBase64: params.storeImageBase64,
       }),
-      // 略长于服务端 ARK_VISION_TIMEOUT_MS(默认120s)
-      timeoutMs: 150_000,
+      // 略长于服务端 ARK_VISION_TIMEOUT_MS(默认180s)
+      timeoutMs: 210_000,
     }
   );
   syncLocalQuota(data.quota);

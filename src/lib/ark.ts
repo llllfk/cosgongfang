@@ -160,7 +160,8 @@ export async function analyzeCostumeWithArk(imageBase64: string): Promise<ArkAna
   };
 
   const controller = new AbortController();
-  const timeoutMs = Number(process.env.ARK_VISION_TIMEOUT_MS || 120000);
+  // evolving / 推理类视觉模型偶发较慢；默认 3 分钟，可用环境变量覆盖
+  const timeoutMs = Number(process.env.ARK_VISION_TIMEOUT_MS || 180_000);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -204,7 +205,9 @@ export async function analyzeCostumeWithArk(imageBase64: string): Promise<ArkAna
     };
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('服饰鉴定超时，请稍后重试');
+      throw new Error(
+        `服饰鉴定超时（>${Math.round(timeoutMs / 1000)}s）。可换更小图片，或将 ARK_VISION_MODEL 换成更快的视觉模型后重试`
+      );
     }
     throw err instanceof Error ? new Error(`服饰鉴定失败：${err.message}`) : err;
   } finally {

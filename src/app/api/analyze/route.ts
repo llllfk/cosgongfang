@@ -8,8 +8,8 @@ import { persistImage, cosStoragePath } from '@/lib/coze-storage';
 import { resolveStoredImageUrl, serializeAnalyzeImageForStorage } from '@/lib/usage-media';
 import type { AnalyzeRecordRow } from '@/db/schema';
 
-/** 识图可能较慢 */
-export const maxDuration = 180;
+/** 识图可能较慢（含落库 + Ark，默认视觉超时约 180s） */
+export const maxDuration = 300;
 
 async function mapAnalyze(row: AnalyzeRecordRow) {
   return {
@@ -54,18 +54,19 @@ export async function POST(req: Request) {
       return jsonError(new Error('魔力不足：鉴定次数已用完，请联系管理员补充'));
     }
 
-    // 先落库上传图（Coze S3 或 data URL），再调识图
+    // 落库与识图并行，避免对象存储拖慢整体耗时导致视觉超时
     const storagePath = cosStoragePath('analyze', user.id);
     const imageForStore = storeImageBase64 || imageBase64;
-    const imageStored = await persistImage(imageForStore, {
-      s3FileName: `${storagePath}/input.jpg`,
-      fallback: serializeAnalyzeImageForStorage,
-    });
+    const [imageStored, payload] = await Promise.all([
+      persistImage(imageForStore, {
+        s3FileName: `${storagePath}/input.jpg`,
+        fallback: serializeAnalyzeImageForStorage,
+      }),
+      analyzeCostumeWithArk(imageBase64),
+    ]);
     if (!imageStored) {
       return jsonError(new Error('上传图保存失败，请重试'));
     }
-
-    const payload = await analyzeCostumeWithArk(imageBase64);
 
     const [updated] = await db
       .update(users)
