@@ -47,7 +47,9 @@ export function toS3Ref(objectKey: string): string {
   return `${S3_PREFIX}${objectKey}`;
 }
 
-export function isS3MediaRef(value?: string | null): value is string {
+export type S3MediaRef = `s3:${string}`;
+
+export function isS3MediaRef(value?: string | null): value is S3MediaRef {
   return !!value && value.startsWith(S3_PREFIX);
 }
 

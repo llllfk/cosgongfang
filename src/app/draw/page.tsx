@@ -110,7 +110,7 @@ function friendlyDrawError(err: unknown): string {
 }
 
 function genStatusText(elapsedSec: number) {
-  let text = GEN_STAGES[0].text;
+  let text: string = GEN_STAGES[0].text;
   for (const stage of GEN_STAGES) {
     if (elapsedSec >= stage.after) text = stage.text;
   }

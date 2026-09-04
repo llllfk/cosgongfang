@@ -6,7 +6,7 @@ import {
 } from '@/lib/coze-storage';
 
 /** 使用记录：输入图 / 参考图是否可直接展示（未解析的 s3: 引用不算） */
-export function isDisplayableImageUrl(url?: string | null): url is string {
+export function isDisplayableImageUrl(url?: string | null): boolean {
   if (!url) return false;
   if (isS3MediaRef(url)) return false;
   return (
