@@ -34,6 +34,13 @@ async function ensureTables() {
       created_at timestamptz NOT NULL DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      account varchar(64) PRIMARY KEY,
+      fail_count integer NOT NULL DEFAULT 0,
+      locked_until timestamptz,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS global_config (
       id integer PRIMARY KEY DEFAULT 1,
       default_analyze_count integer NOT NULL DEFAULT 2,

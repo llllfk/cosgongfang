@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { CrystalBadge } from './CrystalBadge';
 import { ToastProvider, useToast } from './Toast';
@@ -30,7 +30,6 @@ const useUserState = () => {
   } | null>(null);
   const [analyzeCount, setAnalyzeCount] = React.useState(0);
   const [drawCount, setDrawCount] = React.useState(0);
-  const router = useRouter();
 
   const refresh = React.useCallback(() => {
     const u = localStorage.getItem('cos_user');
@@ -74,39 +73,61 @@ const useUserState = () => {
     try {
       await logoutApi();
     } catch {
-      localStorage.removeItem('cos_user');
-      localStorage.removeItem('cos_analyze_count');
-      localStorage.removeItem('cos_draw_count');
+      /* 接口失败也清本地态 */
     }
+    localStorage.removeItem('cos_user');
+    localStorage.removeItem('cos_analyze_count');
+    localStorage.removeItem('cos_draw_count');
+    window.dispatchEvent(new Event('cos-quota-changed'));
     setUser(null);
-    router.push('/login');
-  }, [router]);
+    // 硬跳转，避免部分托管环境 router.push 无反应
+    window.location.assign('/login');
+  }, []);
 
   return { user, analyzeCount, drawCount, logout, refresh };
 };
 
 function UserMenu({
   user,
-  menuOpen,
-  setMenuOpen,
-  menuRef,
   onProfile,
   onLogout,
   loggingOut,
 }: {
   user: { nickname: string; account?: string; isAdmin: boolean } | null;
-  menuOpen: boolean;
-  setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  menuRef: React.RefObject<HTMLDivElement | null>;
   onProfile: () => void;
   onLogout: () => void;
   loggingOut: boolean;
 }) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    // 用 click 捕获阶段判断外侧关闭，避免 mousedown 先卸掉菜单导致「退出」点不到
+    const onDocClick = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('click', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [menuOpen]);
+
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative" ref={menuRef} data-user-menu>
       <button
         type="button"
-        onClick={() => setMenuOpen((v) => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen((v) => !v);
+        }}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         className="w-9 h-9 rounded-full bg-[rgba(255,60,172,0.15)] border border-[rgba(255,60,172,0.3)] flex items-center justify-center text-sm hover:bg-[rgba(255,60,172,0.3)] transition-colors"
@@ -118,7 +139,7 @@ function UserMenu({
       {menuOpen ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+10px)] w-48 rounded-2xl overflow-hidden z-[60]"
+          className="absolute right-0 top-[calc(100%+10px)] w-48 rounded-2xl overflow-hidden z-[80]"
           style={{
             background: 'linear-gradient(160deg, rgba(42,27,77,0.98), rgba(26,16,51,0.98))',
             border: '1px solid rgba(255,60,172,0.35)',
@@ -134,7 +155,11 @@ function UserMenu({
           <button
             type="button"
             role="menuitem"
-            onClick={onProfile}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
+              onProfile();
+            }}
             className="w-full text-left px-4 py-3 text-sm text-[#B8AAD4] hover:text-white hover:bg-[rgba(255,60,172,0.12)] transition-colors"
           >
             ✨ 个人信息修改
@@ -142,11 +167,23 @@ function UserMenu({
           <button
             type="button"
             role="menuitem"
-            onClick={onLogout}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (loggingOut) return;
+              setMenuOpen(false);
+              onLogout();
+            }}
             disabled={loggingOut}
-            className="w-full text-left px-4 py-3 text-sm text-[#FF3CAC] hover:bg-[rgba(255,60,172,0.12)] transition-colors border-t border-[rgba(255,60,172,0.12)] disabled:opacity-50"
+            className="w-full text-left px-4 py-3 text-sm text-[#FF3CAC] hover:bg-[rgba(255,60,172,0.12)] transition-colors border-t border-[rgba(255,60,172,0.12)] disabled:opacity-50 inline-flex items-center gap-2"
           >
-            {loggingOut ? '退出中…' : '退出登录'}
+            {loggingOut ? (
+              <>
+                <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-[#FF3CAC]/30 border-t-[#FF3CAC] animate-spin" />
+                退出中…
+              </>
+            ) : (
+              '退出登录'
+            )}
           </button>
         </div>
       ) : null}
@@ -163,37 +200,16 @@ const NavBar: React.FC<{
 }> = ({ user, analyzeCount, drawCount, logout, refresh }) => {
   const pathname = usePathname();
   const { showToast } = useToast();
-  const [menuOpen, setMenuOpen] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [nickname, setNickname] = React.useState('');
   const [oldPassword, setOldPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (!menuOpen) return;
-    const onPointer = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [menuOpen]);
 
   const openProfile = () => {
     setNickname(user?.nickname || '');
     setOldPassword('');
     setNewPassword('');
-    setMenuOpen(false);
     setProfileOpen(true);
   };
 
@@ -223,10 +239,13 @@ const NavBar: React.FC<{
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
-    setMenuOpen(false);
+    // 等一帧让遮罩先渲染出来
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
     try {
       await logout();
-    } finally {
+    } catch {
       setLoggingOut(false);
     }
   };
@@ -241,6 +260,24 @@ const NavBar: React.FC<{
 
   return (
     <>
+      {loggingOut ? (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4"
+          style={{
+            background: 'rgba(13, 8, 32, 0.72)',
+            backdropFilter: 'blur(8px)',
+          }}
+          aria-live="assertive"
+          aria-busy="true"
+        >
+          <div
+            className="w-12 h-12 rounded-full border-[3px] border-[rgba(255,60,172,0.25)] border-t-[#FF3CAC] animate-spin"
+            style={{ boxShadow: '0 0 24px rgba(255,60,172,0.35)' }}
+          />
+          <p className="text-sm font-medium text-white tracking-wide">正在退出工坊…</p>
+          <p className="text-xs text-[#7A6B99]">请稍候</p>
+        </div>
+      ) : null}
       {/* 桌面 / 大屏平板顶栏 */}
       <nav className="fixed top-3 md:top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] md:w-[92%] max-w-5xl hidden lg:block">
         <div
@@ -277,9 +314,6 @@ const NavBar: React.FC<{
             <div className="w-px h-6 bg-[rgba(255,60,172,0.2)]" />
             <UserMenu
               user={user}
-              menuOpen={menuOpen}
-              setMenuOpen={setMenuOpen}
-              menuRef={menuRef}
               onProfile={openProfile}
               onLogout={handleLogout}
               loggingOut={loggingOut}
@@ -307,9 +341,6 @@ const NavBar: React.FC<{
             <CrystalBadge count={drawCount} variant="cyan" size="sm" />
             <UserMenu
               user={user}
-              menuOpen={menuOpen}
-              setMenuOpen={setMenuOpen}
-              menuRef={menuRef}
               onProfile={openProfile}
               onLogout={handleLogout}
               loggingOut={loggingOut}
