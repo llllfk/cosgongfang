@@ -145,10 +145,10 @@ export default function AnalyzePage() {
           icon={<ShirtIcon size={22} className="text-[#FF3CAC]" />}
         />
 
-        <div className="grid lg:grid-cols-5 gap-6 mt-8">
+        <div className="grid lg:grid-cols-5 gap-6 mt-8 lg:items-stretch">
           {/* 左栏：上传区 */}
-          <div className="lg:col-span-2">
-            <GlowCard glowColor="pink" hoverable={false} className="p-6 h-full">
+          <div className="lg:col-span-2 flex">
+            <GlowCard glowColor="pink" hoverable={false} className="p-6 w-full h-full flex flex-col">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <UploadIcon size={18} className="text-[#FF3CAC]" />
                 上传角色图
@@ -156,12 +156,11 @@ export default function AnalyzePage() {
 
               <div
                 className={
-                  'relative rounded-2xl border-2 border-dashed overflow-hidden transition-all duration-200 cursor-pointer ' +
+                  'relative rounded-2xl border-2 border-dashed overflow-hidden transition-all duration-200 cursor-pointer flex-1 min-h-[280px] ' +
                   (dragOver
                     ? 'border-[#FF3CAC] bg-[rgba(255,60,172,0.1)]'
                     : 'border-[rgba(255,60,172,0.3)] bg-[rgba(13,8,32,0.4)] hover:border-[rgba(255,60,172,0.5)]')
                 }
-                style={{ minHeight: 280 }}
                 onClick={() => {
                   if (loading) return;
                   fileInputRef.current?.click();
@@ -263,21 +262,21 @@ export default function AnalyzePage() {
           </div>
 
           {/* 右栏：鉴定书展示区 */}
-          <div className="lg:col-span-3">
-            <GlowCard glowColor="cyan" hoverable={false} className="p-6 min-h-[500px]">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="lg:col-span-3 flex">
+            <GlowCard glowColor="cyan" hoverable={false} className="p-6 w-full h-full flex flex-col min-h-[500px] lg:min-h-0">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 shrink-0">
                 <ScissorsIcon size={18} className="text-[#21E6C1]" />
                 服饰鉴定书
               </h3>
 
               {loading && (
-                <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex-1 flex flex-col items-center justify-center py-8 min-h-[280px]">
                   <MagicCircle active text="魔法阵运转中，正在解析服饰…" />
                 </div>
               )}
 
               {!loading && !result && (
-                <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex-1 flex flex-col items-center justify-center py-8 min-h-[280px]">
                   <MagicCircle
                     size="md"
                     active={false}
@@ -291,7 +290,7 @@ export default function AnalyzePage() {
               )}
 
               {!loading && result && (
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                <div className="flex-1 space-y-4 overflow-y-auto pr-2 min-h-0">
                   {DIMENSIONS.map((dim) => {
                     const items = (result as any)[dim.key] as string[] | { name: string; hex: string }[];
                     return (
