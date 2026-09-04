@@ -94,6 +94,14 @@ function friendlyDrawError(err: unknown): string {
   if (msg.includes('超时') || msg.includes('timeout') || msg.includes('abort')) {
     return '生成超时了。可减少参考图数量、换小一点的图，或稍后再试（Seedream 有时需 1～2 分钟）。';
   }
+  if (
+    msg.includes('copyright') ||
+    msg.includes('版权') ||
+    msg.includes('风控拦截') ||
+    msg.includes('官方立绘')
+  ) {
+    return '生图被版权风控拦截：请去掉角色名/作品名，用服装结构、面料、配色描述，或换原创参考图后再试。';
+  }
   if (msg.includes('请上传参考图') || msg.includes('参考图')) {
     return '图生图需要至少一张参考图，请先上传后再生成。';
   }

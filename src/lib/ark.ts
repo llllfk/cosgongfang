@@ -103,19 +103,19 @@ function buildPrompt(
   if (mode === 'img2img') {
     const refHint =
       refCount > 1
-        ? `这是 ${refCount} 张 COS 服装参考图（按顺序为图1～图${refCount}），请综合参考它们的服装结构与元素进行编辑。`
-        : '这是一张 COS 服装参考图，请在尽量保持人物姿态、构图与服装结构的前提下进行编辑。';
+        ? `这是 ${refCount} 张 COS 服装结构参考图（按顺序为图1～图${refCount}），请综合参考服装剪裁与层次做原创设计稿，不要复刻任何受版权保护的角色形象或官方立绘。`
+        : '这是一张 COS 服装结构参考图，请参考服装剪裁与层次做原创设计稿；保持姿态与构图可参考，但不要复刻受版权保护的角色形象或官方立绘。';
     return [
       refHint,
       `编辑要求（必须严格执行）：${base}`,
       stylePart ? `画风要求${stylePart}` : '',
       '若涉及配色修改，请把服装主色/辅色整体替换为目标色系，不要只改局部小点缀。',
-      '高质量 COS 服装设计稿，细节清晰，构图完整。',
+      '输出为可打版的原创 COS 服装设计稿，细节清晰，构图完整。',
     ]
       .filter(Boolean)
       .join('');
   }
-  return `${base}${stylePart}。高质量 COS 服装设计稿，细节清晰，构图完整`;
+  return `${base}${stylePart}。输出为可打版的原创 COS 服装设计稿，细节清晰，构图完整，避免复刻受版权保护的角色形象`;
 }
 
 /** 服饰鉴定：看图输出 7 维结构化结果 */
@@ -215,6 +215,24 @@ export async function analyzeCostumeWithArk(imageBase64: string): Promise<ArkAna
   }
 }
 
+function mapArkGenerateError(message: string): Error {
+  const msg = message.toLowerCase();
+  if (
+    msg.includes('copyright') ||
+    msg.includes('版权') ||
+    msg.includes('intellectual property') ||
+    msg.includes('ip restriction')
+  ) {
+    return new Error(
+      '生图被版权风控拦截：参考图或提示词可能涉及受保护角色/官方立绘。请去掉角色名与作品名，改用服装结构/面料/配色描述，或换原创参考图后再试'
+    );
+  }
+  if (msg.includes('sensitive') || msg.includes('risk') || msg.includes('违规')) {
+    return new Error('生图内容未通过安全审核，请修改提示词或参考图后重试');
+  }
+  return new Error(`火山生图失败：${message}`);
+}
+
 /** Seedream-5.0-pro 禁止传这些字段，传了会 400 */
 export async function generateWithArk(params: ArkGenerateParams): Promise<ArkGenerateResult> {
   const apiKey = requireEnv('ARK_API_KEY');
@@ -282,7 +300,7 @@ export async function generateWithArk(params: ArkGenerateParams): Promise<ArkGen
 
     if (!res.ok) {
       const msg = json.error?.message || text.slice(0, 300) || `ARK HTTP ${res.status}`;
-      throw new Error(`火山生图失败：${msg}`);
+      throw mapArkGenerateError(msg);
     }
 
     const item = json.data?.[0];
