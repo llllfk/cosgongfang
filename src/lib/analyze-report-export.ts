@@ -408,7 +408,10 @@ export function buildAnalyzeReportDocx(result: AnalyzeResult): Blob {
     { name: 'word/document.xml', data: encoder.encode(documentXml) },
     { name: 'word/_rels/document.xml.rels', data: encoder.encode(DOC_RELS) },
   ]);
-  return new Blob([zip], {
+  // 拷贝为独立 ArrayBuffer，避免 TS DOM 将 Uint8Array.buffer 判为 ArrayBufferLike 导致 BlobPart 不兼容
+  const bytes = new Uint8Array(zip.byteLength);
+  bytes.set(zip);
+  return new Blob([bytes.buffer], {
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
 }
