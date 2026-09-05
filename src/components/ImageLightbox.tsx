@@ -244,7 +244,8 @@ export function ImageLightbox({ src, alt = '预览', onClose }: LightboxProps) {
   );
 }
 
-type PreviewableImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+type PreviewableImageProps = Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
+  src?: string | null;
   /** 点击预览用的大图，默认等于 src */
   previewSrc?: string;
 };
@@ -259,7 +260,7 @@ export function PreviewableImage({
   ...rest
 }: PreviewableImageProps) {
   const [open, setOpen] = React.useState(false);
-  const full = previewSrc || src;
+  const full = previewSrc || src || null;
   if (!src) return null;
 
   return (
@@ -277,7 +278,7 @@ export function PreviewableImage({
         {...rest}
       />
       <ImageLightbox
-        src={open ? full || null : null}
+        src={open ? full : null}
         alt={alt || '预览'}
         onClose={() => setOpen(false)}
       />

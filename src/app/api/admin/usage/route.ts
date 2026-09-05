@@ -74,8 +74,10 @@ async function listDrawKeys(userId: string, limit: number, offset: number): Prom
 }
 
 async function listMergedKeys(userId: string, limit: number, offset: number): Promise<PageKey[]> {
+  type RawKey = { id: string; created_at: Date | string; kind: string };
+
   const result = userId
-    ? await db.execute<{ id: string; created_at: Date; kind: string }>(sql`
+    ? await db.execute(sql`
         SELECT id, created_at, kind FROM (
           SELECT id, created_at, 'analyze'::text AS kind FROM analyze_records WHERE user_id = ${userId}
           UNION ALL
@@ -84,7 +86,7 @@ async function listMergedKeys(userId: string, limit: number, offset: number): Pr
         ORDER BY created_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `)
-    : await db.execute<{ id: string; created_at: Date; kind: string }>(sql`
+    : await db.execute(sql`
         SELECT id, created_at, kind FROM (
           SELECT id, created_at, 'analyze'::text AS kind FROM analyze_records
           UNION ALL
@@ -93,7 +95,12 @@ async function listMergedKeys(userId: string, limit: number, offset: number): Pr
         ORDER BY created_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `);
-  const rows = Array.isArray(result) ? result : (result as { rows?: typeof result }).rows || [];
+
+  // node-postgres QueryResult 有 rows；部分 drizzle 版本也可能直接返回数组
+  const rows: RawKey[] = Array.isArray(result)
+    ? (result as unknown as RawKey[])
+    : ((result as unknown as { rows: RawKey[] }).rows ?? []);
+
   return rows.map((r) => ({
     id: String(r.id),
     kind: r.kind === 'draw' ? ('draw' as const) : ('analyze' as const),
