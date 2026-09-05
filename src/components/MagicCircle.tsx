@@ -13,7 +13,7 @@ interface MagicCircleProps {
 
 export const MagicCircle: React.FC<MagicCircleProps> = ({
   size = 'md',
-  text = '召唤魔法阵开始鉴定',
+  text = '上传图片后开始鉴定',
   className,
   active = true,
 }) => {

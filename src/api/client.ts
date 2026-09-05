@@ -23,6 +23,29 @@ export interface AnalyzeResult {
   materials: string[];
   craftDifficulties: string[];
   patternTips: string[];
+  /** 完整定制需求报告（新结构；旧记录可能为空） */
+  report?: {
+    summary: string;
+    parts: Array<{
+      name: string;
+      structure: string;
+      details: string[];
+      fabric: string[];
+      craft: string[];
+    }>;
+    printsEmbroidery: string[];
+    accessories: string[];
+    colorScheme: { name: string; hex: string }[];
+    materials: {
+      lining: string[];
+      hardware: string[];
+      notions: string[];
+      wig: string[];
+    };
+    sizingNotes: string[];
+    risks: string[];
+    toPatternMaker: string;
+  };
 }
 
 export interface DrawImage {
@@ -197,8 +220,8 @@ export async function submitAnalyze(params: SubmitAnalyzeParams): Promise<Analyz
         imageBase64: params.imageBase64,
         storeImageBase64: params.storeImageBase64,
       }),
-      // 略长于服务端 ARK_VISION_TIMEOUT_MS(默认180s)
-      timeoutMs: 210_000,
+      // 略长于服务端 ARK_VISION_TIMEOUT_MS(默认 5 分钟)
+      timeoutMs: 330_000,
     }
   );
   syncLocalQuota(data.quota);
@@ -256,6 +279,39 @@ export async function getDrawHistory(): Promise<DrawImage[]> {
   return data.items;
 }
 
+export type DesignView = 'three' | 'parts';
+
+export interface DesignSheetResult {
+  view: DesignView;
+  label: string;
+  image: DrawImage;
+}
+
+export async function generateDesignSheet(params: {
+  view: DesignView;
+  imageBase64: string;
+  storeImageBase64?: string;
+  note?: string;
+  size?: string;
+}): Promise<DesignSheetResult> {
+  const data = await request<
+    DesignSheetResult & { quota: { analyzeCount: number; drawCount: number } }
+  >('/api/design', {
+    method: 'POST',
+    body: JSON.stringify({
+      view: params.view,
+      imageBase64: params.imageBase64,
+      storeImageBase64: params.storeImageBase64,
+      note: params.note,
+      size: params.size,
+    }),
+    timeoutMs: 280_000,
+  });
+  syncLocalQuota(data.quota);
+  if (!data.image?.id) throw new Error('生成成功但未返回设计稿');
+  return { view: data.view, label: data.label, image: data.image };
+}
+
 export interface UsageItem {
   id: string;
   type: 'analyze' | 'draw';
@@ -283,6 +339,7 @@ export interface UsageItem {
     materials: string[];
     craftDifficulties: string[];
     patternTips: string[];
+    report?: AnalyzeResult['report'];
   };
 }
 

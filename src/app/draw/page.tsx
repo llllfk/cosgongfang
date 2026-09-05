@@ -9,6 +9,7 @@ import { SectionTitle } from '@/components/SectionTitle';
 import { useToast } from '@/components/Toast';
 import { UploadIcon, PaletteIcon, SparklesIcon } from '@/components/Icons';
 import { Modal } from '@/components/Modal';
+import { GlowSelect } from '@/components/GlowSelect';
 import { text2img, img2img, getDrawHistory, getQuota } from '@/api/client';
 import type { DrawImage } from '@/api/client';
 import { compressImageFile, compressImagesForRecord } from '@/lib/image-compress';
@@ -34,7 +35,7 @@ const ASPECT_PRESETS = [
 const MAX_REF_IMAGES = 10;
 
 const GEN_STAGES = [
-  { after: 0, text: '魔法阵启动中，正在理解提示词…' },
+  { after: 0, text: '正在理解提示词…' },
   { after: 15, text: '正在绘制服装细节，请稍候…' },
   { after: 45, text: '画面精修中，通常还要一会儿…' },
   { after: 90, text: '仍在生成，Seedream 有时需要 1～2 分钟…' },
@@ -88,8 +89,8 @@ function isRealImage(url?: string) {
 function friendlyDrawError(err: unknown): string {
   const raw = err instanceof Error ? err.message : '生成失败，请重试';
   const msg = raw.toLowerCase();
-  if (msg.includes('魔力不足') || msg.includes('次数')) {
-    return '绘梦魔力不足，请联系管理员补充后再试。';
+  if (msg.includes('次数不足') || msg.includes('次数')) {
+    return '绘梦次数不足，请联系管理员补充后再试。';
   }
   if (msg.includes('超时') || msg.includes('timeout') || msg.includes('abort')) {
     return '生成超时了。可减少参考图数量、换小一点的图，或稍后再试（Seedream 有时需 1～2 分钟）。';
@@ -205,7 +206,7 @@ export default function DrawPage() {
       .catch(() => {});
   }, []);
 
-  // 同步绘梦魔力
+  // 同步绘梦次数
   React.useEffect(() => {
     syncDrawQuota();
     getQuota()
@@ -301,7 +302,7 @@ export default function DrawPage() {
       remain = Number(localStorage.getItem('cos_draw_count') || drawCount);
     }
     if (remain <= 0) {
-      const message = '绘梦魔力不足，请联系管理员补充后再试。';
+      const message = '绘梦次数不足，请联系管理员补充后再试。';
       setLastError(message);
       showToast(message, 'error');
       return;
@@ -395,37 +396,30 @@ export default function DrawPage() {
     { key: 'demo', label: '示例占位' },
   ];
 
-  const aspectButtons = (
-    <div className="flex flex-wrap gap-2">
-      {ASPECT_PRESETS.map((aspect) => {
-        const active = selectedAspect === aspect.key;
-        return (
-          <button
-            key={aspect.key}
-            type="button"
-            title={`${aspect.hint} · ${aspect.size}`}
-            onClick={() => setSelectedAspect(aspect.key)}
-            className={
-              'inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all border ' +
-              (active
-                ? 'bg-[rgba(33,230,193,0.18)] border-[rgba(33,230,193,0.65)] text-white'
-                : 'bg-[rgba(13,8,32,0.6)] border-[rgba(184,170,212,0.2)] text-[#B8AAD4] hover:border-[rgba(33,230,193,0.4)] hover:text-white')
-            }
-            style={active ? { boxShadow: '0 0 15px rgba(33,230,193,0.25)' } : undefined}
-          >
+  const aspectSelect = (
+    <GlowSelect
+      value={selectedAspect}
+      onChange={(v) => setSelectedAspect(v as (typeof ASPECT_PRESETS)[number]['key'])}
+      options={ASPECT_PRESETS.map((a) => {
+        const active = selectedAspect === a.key;
+        return {
+          value: a.key,
+          label: `${a.label} · ${a.hint}`,
+          icon: (
             <span
               className={
-                'inline-block rounded-[3px] border ' +
-                aspect.box +
-                (active ? ' border-[#21E6C1] bg-[rgba(33,230,193,0.25)]' : ' border-[#7A6B99]')
+                'inline-block shrink-0 rounded-[3px] border ' +
+                a.box +
+                (active
+                  ? ' border-[#21E6C1] bg-[rgba(33,230,193,0.25)]'
+                  : ' border-[#7A6B99] bg-[rgba(122,107,153,0.15)]')
               }
             />
-            <span>{aspect.label}</span>
-            <span className="text-[10px] text-[#7A6B99]">{aspect.hint}</span>
-          </button>
-        );
+          ),
+        };
       })}
-    </div>
+      className="w-full"
+    />
   );
 
   const styleButtons = (
@@ -471,7 +465,7 @@ export default function DrawPage() {
     <div className="flex flex-col gap-3">
       {drawCount <= 0 && !generating && (
         <div className="rounded-xl px-4 py-3 border border-[rgba(255,85,119,0.35)] bg-[rgba(255,85,119,0.1)] text-sm text-[#FFB3C0]">
-          绘梦魔力已用完，暂时无法生成。请联系管理员补充魔力。
+          绘梦次数已用完，暂时无法生成。请联系管理员补充。
         </div>
       )}
       {generating && (
@@ -492,7 +486,7 @@ export default function DrawPage() {
         <div className="text-xs text-[#7A6B99] flex flex-col gap-1">
           <span className="inline-flex items-center gap-1.5">
             <SparklesIcon size={12} />
-            每次生成消耗 1 点绘梦魔力
+            每次生成消耗 1 次绘梦额度
           </span>
           <span className={drawCount <= 0 ? 'text-[#FFB3C0]' : 'text-[#21E6C1]'}>
             当前剩余：{drawCount} 点
@@ -504,7 +498,7 @@ export default function DrawPage() {
           loading={generating}
           disabled={compressing || drawCount <= 0}
         >
-          {generating ? '魔法阵运转中…' : drawCount <= 0 ? '魔力不足' : '开始生成'}
+          {generating ? '处理中…' : drawCount <= 0 ? '次数不足' : '开始生成'}
         </GlowButton>
       </div>
     </div>
@@ -662,7 +656,7 @@ export default function DrawPage() {
               <label className="block text-sm font-medium text-[#B8AAD4] mb-3 ml-1">
                 图片比例
               </label>
-              {aspectButtons}
+              {aspectSelect}
             </div>
 
             <div className="mb-6">
@@ -723,7 +717,7 @@ export default function DrawPage() {
                   <label className="block text-sm font-medium text-[#B8AAD4] mb-3 ml-1">
                     图片比例
                   </label>
-                  {aspectButtons}
+                  {aspectSelect}
                 </div>
 
                 <div className="mb-6">

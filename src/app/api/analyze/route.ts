@@ -8,8 +8,8 @@ import { persistImage, cosStoragePath } from '@/lib/coze-storage';
 import { resolveStoredImageUrl, serializeAnalyzeImageForStorage } from '@/lib/usage-media';
 import type { AnalyzeRecordRow } from '@/db/schema';
 
-/** 识图可能较慢（含落库 + Ark，默认视觉超时约 180s） */
-export const maxDuration = 300;
+/** 识图可能较慢（含落库 + Ark，默认视觉超时 5 分钟，预留落库缓冲） */
+export const maxDuration = 360;
 
 async function mapAnalyze(row: AnalyzeRecordRow) {
   return {
@@ -23,6 +23,7 @@ async function mapAnalyze(row: AnalyzeRecordRow) {
     materials: row.materials,
     craftDifficulties: row.craftDifficulties,
     patternTips: row.patternTips,
+    report: row.report || undefined,
   };
 }
 
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
       return jsonError(new Error('请上传角色图片'));
     }
     if (user.analyzeCount <= 0) {
-      return jsonError(new Error('魔力不足：鉴定次数已用完，请联系管理员补充'));
+      return jsonError(new Error('次数不足：鉴定次数已用完，请联系管理员补充'));
     }
 
     // 落库与识图并行，避免对象存储拖慢整体耗时导致视觉超时
@@ -80,7 +81,14 @@ export async function POST(req: Request) {
         .values({
           userId: user.id,
           imageUrl: imageStored,
-          ...payload,
+          costumeStructure: payload.costumeStructure,
+          fabricGuess: payload.fabricGuess,
+          colorScheme: payload.colorScheme,
+          accessories: payload.accessories,
+          materials: payload.materials,
+          craftDifficulties: payload.craftDifficulties,
+          patternTips: payload.patternTips,
+          report: payload.report,
         })
         .returning();
 

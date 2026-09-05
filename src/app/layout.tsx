@@ -10,8 +10,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'COS魔法工坊 · 二次元服饰AI工作台',
-    template: '%s | COS魔法工坊',
+    default: 'COS定制工坊 · 二次元服饰AI工作台',
+    template: '%s | COS定制工坊',
   },
   description: '面向COSPLAY服装制作的AI工具，服饰鉴定拆解面料配色，绘梦工坊生成设计稿',
 };

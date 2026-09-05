@@ -121,8 +121,8 @@ export default function ProfilePage() {
         </div>
 
         <SectionTitle
-          title="魔力水晶"
-          subtitle="你的剩余魔力额度"
+          title="剩余额度"
+          subtitle="你的剩余可用次数"
           icon={<GemIcon size={20} className="text-[#FFE66D]" />}
         />
 
@@ -210,7 +210,7 @@ export default function ProfilePage() {
               <div className="flex justify-center mb-3">
                 <SparklesIcon size={36} className="text-[#FF3CAC]" />
               </div>
-              <p className="text-[#B8AAD4]">还没有使用记录，去工坊施展魔法吧</p>
+              <p className="text-[#B8AAD4]">还没有使用记录，去工坊开始创作吧</p>
             </GlowCard>
           ) : (
             <div className="space-y-4">
@@ -261,7 +261,7 @@ export default function ProfilePage() {
                           </span>
                           <span className="text-[11px] text-[#7A6B99]">{formatTime(item.createdAt)}</span>
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(255,230,109,0.12)] text-[#FFE66D] border border-[rgba(255,230,109,0.25)]">
-                            -1 魔力
+                            -1 次
                           </span>
                         </div>
                         <p className="text-sm text-[#B8AAD4] line-clamp-2">{item.summary}</p>
@@ -286,7 +286,7 @@ export default function ProfilePage() {
                 💎
               </div>
               <div>
-                <h4 className="font-bold text-white text-sm">补充魔力</h4>
+                <h4 className="font-bold text-white text-sm">补充次数</h4>
                 <p className="text-xs text-[#7A6B99]">联系管理员获取次数</p>
               </div>
             </div>

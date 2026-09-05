@@ -62,6 +62,8 @@ export const analyzeRecords = pgTable('analyze_records', {
   materials: jsonb('materials').$type<string[]>().notNull(),
   craftDifficulties: jsonb('craft_difficulties').$type<string[]>().notNull(),
   patternTips: jsonb('pattern_tips').$type<string[]>().notNull(),
+  /** 完整定制需求报告（新）；旧数据可为空 */
+  report: jsonb('report').$type<Record<string, unknown>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

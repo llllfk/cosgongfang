@@ -152,7 +152,7 @@ async function main() {
     { prompt: '哥特萝莉风洋装，黑色蕾丝，十字装饰，暗黑系', style: '赛璐璐', mode: 'text2img' as const },
     { prompt: '国风汉服少女，齐胸襦裙，飘带，仙气', style: '厚涂', mode: 'text2img' as const },
     { prompt: '蒸汽朋克风格服装，齿轮，皮革，护目镜', style: '水彩', mode: 'img2img' as const },
-    { prompt: '魔法少女战斗服，星星元素，发光效果', style: '赛璐璐', mode: 'img2img' as const },
+    { prompt: '赛博机甲战斗服，星星元素，发光效果', style: '赛璐璐', mode: 'img2img' as const },
   ];
 
   for (const item of seedDraws) {

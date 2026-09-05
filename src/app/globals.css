@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ========== COS魔法工坊 设计系统 ========== */
+/* ========== COS定制工坊 设计系统 ========== */
 :root {
   /* 背景色 */
   --cos-bg-deep: #0D0820;
@@ -161,7 +161,7 @@ body {
   to { transform: translate(-400px, -400px); }
 }
 
-/* ========== 魔法阵 ========== */
+/* ========== 加载阵动画 ========== */
 .cos-magic-circle {
   position: relative;
   width: 280px;
@@ -243,7 +243,7 @@ body {
   50% { opacity: 1; transform: scale(1.1); }
 }
 
-/* 小魔法阵 */
+/* 小尺寸加载动画 */
 .cos-magic-circle--sm {
   width: 160px;
   height: 160px;

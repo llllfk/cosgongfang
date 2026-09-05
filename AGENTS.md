@@ -1,4 +1,4 @@
-# AGENTS.md — COS魔法工坊
+# AGENTS.md — COS定制工坊
 
 ## 项目概览
 
@@ -9,7 +9,7 @@
 - **Framework**: Next.js 16 (App Router)
 - **Core**: React 19
 - **Language**: TypeScript 5
-- **Styling**: Tailwind CSS 4 + 自定义设计token（二次元魔法工坊风）
+- **Styling**: Tailwind CSS 4 + 自定义设计token（二次元定制工坊风）
 - **状态管理**: React Context（Toast） + localStorage（mock 用户态）
 
 ## 目录结构
@@ -18,7 +18,7 @@
 src/
 ├── app/
 │   ├── layout.tsx         # 根布局，含 ToastRoot
-│   ├── globals.css        # 全局样式 + 设计token + 星光/魔法阵动效
+│   ├── globals.css        # 全局样式 + 设计token + 星光背景动效
 │   ├── page.tsx           # 根路径 → redirect /home
 │   ├── login/page.tsx     # 登录页
 │   ├── home/page.tsx      # 工作台主页
@@ -32,7 +32,7 @@ src/
 │   ├── GlowCard.tsx       # 发光卡片容器
 │   ├── CrystalBadge.tsx   # 体力水晶胶囊
 │   ├── SectionTitle.tsx   # 带霓虹渐变条的小节标题
-│   ├── MagicCircle.tsx    # 旋转魔法阵动画组件
+│   ├── MagicCircle.tsx    # 加载动画组件
 │   ├── Modal.tsx          # 发光边框模态框
 │   ├── Toast.tsx          # Toast 提示 + Context Provider
 │   ├── ToastRoot.tsx      # 客户端 ToastRoot，供 layout 引入
@@ -48,9 +48,9 @@ src/
 ## 设计规范
 
 详见 `DESIGN.md`。
-- 风格：二次元魔法工坊 / 日系手游界面
+- 风格：二次元定制工坊 / 日系手游界面
 - 主色：深夜紫罗兰 #1A1033 + 霓虹粉 #FF3CAC + 电光青 #21E6C1 + 星芒黄 #FFE66D
-- 游戏化措辞：体力水晶、魔力、鉴定、绘梦、角色卡、工会大厅、招募旅者 等
+- 游戏化措辞：体力水晶、额度、鉴定、绘梦、角色卡、工会大厅、招募旅者 等；产品文案勿用「魔法」「魔力」
 - **反后台五不做**：无左侧边栏、无密集表格、无灰白商务配色、无CRUD术语、无面板式布局
 
 ## 开发规范
@@ -74,7 +74,7 @@ src/
 | `adminListUsers` | 管理端用户列表 | - | User[] |
 | `adminCreateUser` | 招募旅者 | account,nickname,password,analyzeCount,drawCount | User |
 | `adminUpdateUser` | 编辑角色卡 | id, nickname?, count? | User |
-| `adminAdjustQuota` | 补充魔力 | userId, type, delta | User |
+| `adminAdjustQuota` | 补充次数 | userId, type, delta | User |
 | `getGlobalConfig` | 工坊法则 | - | GlobalConfig |
 | `updateGlobalConfig` | 更新法则 | Partial<GlobalConfig> | GlobalConfig |
 
@@ -95,4 +95,4 @@ pnpm lint         # ESLint 检查
 2. **AI 调用**：在 `src/app/api/` 下新建服务端 API route，封装模型调用
 3. **数据库**：Supabase 存储用户、额度、历史记录
 4. **文件上传**：对象存储存上传图和生成图
-5. **支付**：补充魔力的支付对接
+5. **支付**：补充次数的支付对接

@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 export type GlowSelectOption = {
   value: string;
   label: string;
+  /** 选项前的示意图标（如下拉比例小方块） */
+  icon?: React.ReactNode;
 };
 
 type GlowSelectProps = {
@@ -64,8 +66,9 @@ export function GlowSelect({
           open && 'border-[rgba(255,60,172,0.55)] shadow-[0_0_0_2px_rgba(255,60,172,0.25)]'
         )}
       >
-        <span className={cn('truncate', !selected && 'text-[#7A6B99]')}>
-          {selected?.label || placeholder}
+        <span className={cn('truncate flex items-center gap-2 min-w-0', !selected && 'text-[#7A6B99]')}>
+          {selected?.icon}
+          <span className="truncate">{selected?.label || placeholder}</span>
         </span>
         <svg
           width="14"
@@ -114,12 +117,14 @@ export function GlowSelect({
                 }}
                 className={cn(
                   'w-full px-3 py-2.5 text-left text-sm transition-colors',
+                  'inline-flex items-center gap-2.5',
                   active
                     ? 'bg-[rgba(255,60,172,0.2)] text-white'
                     : 'text-[#B8AAD4] hover:bg-[rgba(255,60,172,0.12)] hover:text-white'
                 )}
               >
-                {opt.label}
+                {opt.icon}
+                <span>{opt.label}</span>
               </button>
             );
           })}

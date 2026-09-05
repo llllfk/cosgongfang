@@ -4,6 +4,7 @@ import { analyzeRecords, drawRecords, users } from '@/db/schema';
 import { getCurrentUserRow, requireAdmin } from '@/lib/auth';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { resolveStoredImageUrl, resolveStoredRefUrls } from '@/lib/usage-media';
+import { displayDrawPrompt, designUserNoteOnly } from '@/lib/design-prompt-display';
 
 export async function GET(req: Request) {
   try {
@@ -35,6 +36,7 @@ export async function GET(req: Request) {
         materials: string[];
         craftDifficulties: string[];
         patternTips: string[];
+        report?: Record<string, unknown>;
       };
     }> = [];
 
@@ -51,6 +53,7 @@ export async function GET(req: Request) {
           materials: analyzeRecords.materials,
           craftDifficulties: analyzeRecords.craftDifficulties,
           patternTips: analyzeRecords.patternTips,
+          report: analyzeRecords.report,
           userId: users.id,
           nickname: users.nickname,
           account: users.account,
@@ -70,8 +73,12 @@ export async function GET(req: Request) {
           id: row.id,
           type: 'analyze',
           createdAt: row.createdAt.toISOString(),
-          summary: row.fabricGuess?.[0] || row.costumeStructure?.[0] || '服饰鉴定',
-          detail: '扣 1 次鉴定魔力',
+          summary:
+            (row.report as { summary?: string } | null)?.summary ||
+            row.fabricGuess?.[0] ||
+            row.costumeStructure?.[0] ||
+            '定制需求报告',
+          detail: '扣 1 次鉴定次数',
           userId: row.userId,
           nickname: row.nickname,
           account: row.account,
@@ -84,6 +91,7 @@ export async function GET(req: Request) {
             materials: row.materials || [],
             craftDifficulties: row.craftDifficulties || [],
             patternTips: row.patternTips || [],
+            report: row.report || undefined,
           },
         });
       }
@@ -111,18 +119,20 @@ export async function GET(req: Request) {
         .limit(200);
 
       for (const row of rows) {
+        const shown = displayDrawPrompt(row.prompt, row.style);
+        const userNote = designUserNoteOnly(row.prompt, row.style);
         items.push({
           id: row.id,
           type: 'draw',
           createdAt: row.createdAt.toISOString(),
-          summary: row.prompt,
-          detail: `${row.style} · ${row.mode === 'img2img' ? '图生图' : '文生图'} · 扣 1 次绘梦魔力`,
+          summary: shown,
+          detail: `${row.style} · ${row.mode === 'img2img' ? '图生图' : '文生图'} · 扣 1 次绘梦次数`,
           userId: row.userId,
           nickname: row.nickname,
           account: row.account,
           style: row.style,
           mode: row.mode,
-          prompt: row.prompt,
+          prompt: row.style === '设计稿' ? userNote || undefined : row.prompt,
           imageUrl: await resolveStoredImageUrl(row.imageUrl),
           refImageUrls: await resolveStoredRefUrls(row.refImageUrl),
         });

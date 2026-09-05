@@ -4,6 +4,7 @@ import { analyzeRecords, drawRecords } from '@/db/schema';
 import { getCurrentUserRow, requireUser } from '@/lib/auth';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { resolveStoredImageUrl, resolveStoredRefUrls } from '@/lib/usage-media';
+import { displayDrawPrompt, designUserNoteOnly } from '@/lib/design-prompt-display';
 
 export type UsageItem = {
   id: string;
@@ -25,6 +26,7 @@ export type UsageItem = {
     materials: string[];
     craftDifficulties: string[];
     patternTips: string[];
+    report?: Record<string, unknown>;
   };
 };
 
@@ -52,8 +54,11 @@ export async function GET() {
         id: row.id,
         type: 'analyze' as const,
         createdAt: row.createdAt.toISOString(),
-        summary: row.fabricGuess?.[0] || row.costumeStructure?.[0] || '服饰鉴定',
-        detail: `鉴定维度 ${row.costumeStructure?.length || 0} 项`,
+        summary: (row.report as { summary?: string } | null)?.summary ||
+          row.fabricGuess?.[0] ||
+          row.costumeStructure?.[0] ||
+          '定制需求报告',
+        detail: row.report ? '定制需求报告' : `鉴定维度 ${row.costumeStructure?.length || 0} 项`,
         inputImageUrl: await resolveStoredImageUrl(row.imageUrl),
         analyze: {
           costumeStructure: row.costumeStructure,
@@ -63,23 +68,29 @@ export async function GET() {
           materials: row.materials,
           craftDifficulties: row.craftDifficulties,
           patternTips: row.patternTips,
+          report: row.report || undefined,
         },
       }))
     );
 
     const drawItems: UsageItem[] = await Promise.all(
-      draws.map(async (row) => ({
-        id: row.id,
-        type: 'draw' as const,
-        createdAt: row.createdAt.toISOString(),
-        summary: row.prompt,
-        detail: `${row.style} · ${row.mode === 'img2img' ? '图生图' : '文生图'}`,
-        style: row.style,
-        mode: row.mode,
-        prompt: row.prompt,
-        imageUrl: await resolveStoredImageUrl(row.imageUrl),
-        refImageUrls: await resolveStoredRefUrls(row.refImageUrl),
-      }))
+      draws.map(async (row) => {
+        const shown = displayDrawPrompt(row.prompt, row.style);
+        const userNote = designUserNoteOnly(row.prompt, row.style);
+        return {
+          id: row.id,
+          type: 'draw' as const,
+          createdAt: row.createdAt.toISOString(),
+          summary: shown,
+          detail: `${row.style} · ${row.mode === 'img2img' ? '图生图' : '文生图'}`,
+          style: row.style,
+          mode: row.mode,
+          // 设计稿：有用户备注才下发 prompt；普通绘梦仍下发全文
+          prompt: row.style === '设计稿' ? userNote || undefined : row.prompt,
+          imageUrl: await resolveStoredImageUrl(row.imageUrl),
+          refImageUrls: await resolveStoredRefUrls(row.refImageUrl),
+        };
+      })
     );
 
     const items = [...analyzeItems, ...drawItems].sort((a, b) =>

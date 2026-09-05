@@ -1,5 +1,5 @@
 @echo off
-REM COS魔法工坊 - 开发服务启动脚本（兼容中文路径）
+REM COS定制工坊 - 开发服务启动脚本（兼容中文路径）
 chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
 
@@ -26,7 +26,7 @@ set "PORT=5000"
 set "HOSTNAME=localhost"
 
 echo ========================================
-echo   COS魔法工坊 开发服务
+echo   COS定制工坊 开发服务
 echo   目录: %CD%
 echo   地址: http://localhost:%PORT%
 echo ========================================

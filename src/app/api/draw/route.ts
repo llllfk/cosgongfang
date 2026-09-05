@@ -6,6 +6,7 @@ import { generateWithArk } from '@/lib/ark';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { persistImage, persistRefImages, cosStoragePath } from '@/lib/coze-storage';
 import { resolveStoredImageUrl, serializeRefImagesForStorage } from '@/lib/usage-media';
+import { displayDrawPrompt } from '@/lib/design-prompt-display';
 
 /** Seedream Pro 可能要 1~2 分钟 */
 export const maxDuration = 300;
@@ -14,7 +15,7 @@ async function mapDraw(row: DrawRecordRow) {
   return {
     id: row.id,
     imageUrl: (await resolveStoredImageUrl(row.imageUrl)) || row.imageUrl,
-    prompt: row.prompt,
+    prompt: displayDrawPrompt(row.prompt, row.style),
     style: row.style,
     createdAt: row.createdAt.toISOString().slice(0, 10),
     mode: row.mode as 'text2img' | 'img2img',
@@ -43,10 +44,10 @@ async function createDraw(params: {
     throw new Error('请上传参考图');
   }
   if (user.drawCount <= 0) {
-    throw new Error('魔力不足：绘梦次数已用完，请联系管理员补充');
+    throw new Error('次数不足：绘梦次数已用完，请联系管理员补充');
   }
 
-  // 先调火山再扣次：避免模型失败仍扣魔力；成功后再扣并落库
+  // 先调火山再扣次：避免模型失败仍扣次数；成功后再扣并落库
   let arkImageUrl: string;
   try {
     console.info('[draw] start', {

@@ -21,7 +21,7 @@ export const CrystalBadge: React.FC<CrystalBadgeProps> = ({
   const sizeStyles: Record<string, string> = {
     sm: 'px-2.5 py-1 text-xs gap-1.5',
     md: 'px-4 py-1.5 text-sm gap-2',
-    lg: 'px-6 py-2.5 text-base gap-3',
+    lg: 'px-3 py-2 text-sm gap-2 sm:px-6 sm:py-2.5 sm:text-base sm:gap-3',
   };
 
   const variantStyles: Record<string, string> = {
@@ -39,15 +39,15 @@ export const CrystalBadge: React.FC<CrystalBadgeProps> = ({
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-full border backdrop-blur-md font-semibold',
+        'inline-flex items-center rounded-full border backdrop-blur-md font-semibold whitespace-nowrap shrink-0',
         sizeStyles[size],
         variantStyles[variant],
         className
       )}
     >
       <CrystalIcon color={crystalColor[variant]} size={crystalSize} />
-      <span className="text-white font-bold">{count}</span>
-      {label && <span className="opacity-80">{label}</span>}
+      <span className="text-white font-bold tabular-nums">{count}</span>
+      {label && <span className="opacity-80 whitespace-nowrap">{label}</span>}
     </div>
   );
 };

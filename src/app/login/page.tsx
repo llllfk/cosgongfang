@@ -82,7 +82,7 @@ export default function LoginPage() {
             >
               <SparklesIcon size={32} className="text-[#FF3CAC]" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold cos-gradient-text mb-2">COS魔法工坊</h1>
+            <h1 className="text-3xl md:text-4xl font-bold cos-gradient-text mb-2">COS定制工坊</h1>
             <p className="text-sm text-[#B8AAD4]">✦ 二次元服饰鉴定 · 绘梦设计工坊 ✦</p>
           </div>
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">
-                魔力密语（密码）
+                密码
               </label>
               <input
                 type="password"
@@ -118,7 +118,7 @@ export default function LoginPage() {
             ) : null}
 
             <GlowButton type="submit" size="lg" loading={loading} className="w-full mt-6">
-              {loading ? '进入中…' : '进入魔法工坊'}
+              {loading ? '进入中…' : '进入定制工坊'}
             </GlowButton>
           </form>
 
@@ -130,7 +130,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6 text-sm text-[#7A6B99]">
-          ✦ 用魔法拆解二次元，用针线织就热爱 ✦
+          ✦ 拆解二次元服饰，用针线织就热爱 ✦
         </p>
       </div>
     </div>

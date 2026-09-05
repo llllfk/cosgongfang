@@ -192,7 +192,7 @@ export default function AdminPage() {
     }
   };
 
-  // 补充魔力
+  // 补充次数
   const openAdjust = (user: User) => {
     setSelectedUser(user);
     setAdjustForm({ delta: 5, type: 'analyze' });
@@ -209,7 +209,7 @@ export default function AdminPage() {
       showToast(
         `💎 已为 ${selectedUser.nickname} 补充 ${adjustForm.delta} 点${
           adjustForm.type === 'analyze' ? '鉴定' : '绘梦'
-        }魔力`,
+        }次数`,
         'success'
       );
     } catch (err) {
@@ -324,7 +324,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* 魔力显示 */}
+                {/* 额度显示 */}
                 <div className="flex gap-2 mb-4">
                   <CrystalBadge count={user.analyzeCount} label="鉴定" variant="pink" size="sm" />
                   <CrystalBadge count={user.drawCount} label="绘梦" variant="cyan" size="sm" />
@@ -336,7 +336,7 @@ export default function AdminPage() {
                     onClick={() => openAdjust(user)}
                     className="flex-1 py-2 text-xs font-medium rounded-lg bg-[rgba(255,230,109,0.1)] text-[#FFE66D] border border-[rgba(255,230,109,0.3)] hover:bg-[rgba(255,230,109,0.2)] transition-colors"
                   >
-                    💎 补充魔力
+                    💎 补充次数
                   </button>
                   <button
                     onClick={() => openEdit(user)}
@@ -705,11 +705,11 @@ export default function AdminPage() {
         </div>
       </Modal>
 
-      {/* 补充魔力模态框 */}
+      {/* 补充次数模态框 */}
       <Modal
         open={adjustModalOpen}
         onClose={() => setAdjustModalOpen(false)}
-        title={`为 ${selectedUser?.nickname || ''} 补充魔力`}
+        title={`为 ${selectedUser?.nickname || ''} 补充次数`}
         footer={
           <>
             <GlowButton variant="ghost" onClick={() => setAdjustModalOpen(false)} disabled={adjusting}>
@@ -723,19 +723,19 @@ export default function AdminPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-[#B8AAD4] mb-2">魔力类型</label>
+            <label className="block text-sm text-[#B8AAD4] mb-2">额度类型</label>
             <div className="cos-tab-capsule w-full">
               <button
                 className={'flex-1 ' + (adjustForm.type === 'analyze' ? 'active' : '')}
                 onClick={() => setAdjustForm((p) => ({ ...p, type: 'analyze' }))}
               >
-                🔮 鉴定魔力
+                🔮 鉴定次数
               </button>
               <button
                 className={'flex-1 ' + (adjustForm.type === 'draw' ? 'active' : '')}
                 onClick={() => setAdjustForm((p) => ({ ...p, type: 'draw' }))}
               >
-                🎨 绘梦魔力
+                🎨 绘梦次数
               </button>
             </div>
           </div>

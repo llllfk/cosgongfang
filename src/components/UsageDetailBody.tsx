@@ -11,6 +11,46 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function AnalyzeOutput({ analyze }: { analyze: NonNullable<UsageItem['analyze']> }) {
+  const report = analyze.report;
+  if (report) {
+    return (
+      <div className="space-y-3">
+        {report.summary ? (
+          <div>
+            <p className="text-[#FFE66D] font-semibold mb-1 text-sm">需求摘要</p>
+            <p className="text-[#B8AAD4] text-sm leading-relaxed">{report.summary}</p>
+          </div>
+        ) : null}
+        {report.parts?.length ? (
+          <div>
+            <p className="text-[#FFE66D] font-semibold mb-1.5 text-sm">服装拆解</p>
+            <div className="space-y-2">
+              {report.parts.map((part) => (
+                <div key={part.name} className="text-sm text-[#B8AAD4]">
+                  <span className="text-white font-medium">{part.name}</span>：{part.structure}
+                  {part.fabric?.length ? (
+                    <p className="text-xs text-[#7A6B99] mt-0.5">面料：{part.fabric.join('；')}</p>
+                  ) : null}
+                  {part.craft?.length ? (
+                    <p className="text-xs text-[#7A6B99]">工艺：{part.craft.join('；')}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {report.toPatternMaker ? (
+          <div>
+            <p className="text-[#FFE66D] font-semibold mb-1 text-sm">发给打版师</p>
+            <pre className="text-xs text-[#B8AAD4] whitespace-pre-wrap font-sans leading-relaxed">
+              {report.toPatternMaker}
+            </pre>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {analyze.colorScheme?.length ? (
@@ -94,12 +134,15 @@ export function UsageDetailBody({ item, meta }: Props) {
           <div className="space-y-3 rounded-xl border border-[rgba(33,230,193,0.2)] bg-[rgba(33,230,193,0.05)] p-3">
             {item.mode || item.style ? (
               <p className="text-xs text-[#7A6B99]">
-                {item.mode === 'img2img' ? '图生图' : '文生图'}
-                {item.style ? ` · 风格：${item.style}` : ''}
+                {item.style === '设计稿'
+                  ? `设计稿${item.summary?.startsWith('[设计稿·') ? ` · ${item.summary.replace(/^\[设计稿·([^\]]+)\].*$/, '$1')}` : ''}`
+                  : `${item.mode === 'img2img' ? '图生图' : '文生图'}${item.style ? ` · 风格：${item.style}` : ''}`}
               </p>
             ) : null}
             {item.prompt ? (
               <p className="text-white whitespace-pre-wrap leading-relaxed">{item.prompt}</p>
+            ) : item.style === '设计稿' ? (
+              <p className="text-[#7A6B99]">无补充说明</p>
             ) : (
               <p className="text-[#7A6B99]">无提示词</p>
             )}

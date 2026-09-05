@@ -9,6 +9,13 @@ import { ToastProvider, useToast } from './Toast';
 import { Modal } from './Modal';
 import { GlowButton } from './GlowButton';
 import { getCurrentUser, logoutApi, updateProfileApi } from '@/api/client';
+import {
+  NavHomeChibi,
+  NavAnalyzeChibi,
+  NavDesignChibi,
+  NavDrawChibi,
+  NavProfileChibi,
+} from './Icons';
 
 interface PageShellProps {
   children: React.ReactNode;
@@ -16,10 +23,11 @@ interface PageShellProps {
 }
 
 const NAV_ITEMS = [
-  { href: '/home', label: '工坊大厅', icon: '🏰', short: '大厅' },
-  { href: '/analyze', label: '服饰鉴定', icon: '🔮', short: '鉴定' },
-  { href: '/draw', label: '绘梦工坊', icon: '🎨', short: '绘梦' },
-  { href: '/profile', label: '角色卡', icon: '✨', short: '角色' },
+  { href: '/home', label: '工坊大厅', short: '大厅', Icon: NavHomeChibi },
+  { href: '/analyze', label: '定制报告', short: '报告', Icon: NavAnalyzeChibi },
+  { href: '/design', label: '设计稿', short: '设计稿', Icon: NavDesignChibi },
+  { href: '/draw', label: '绘梦工坊', short: '绘梦', Icon: NavDrawChibi },
+  { href: '/profile', label: '角色卡', short: '角色', Icon: NavProfileChibi },
 ] as const;
 
 const useUserState = () => {
@@ -290,20 +298,23 @@ const NavBar: React.FC<{
         >
           <Link href="/home" className="flex items-center gap-2 font-bold min-w-0">
             <span className="text-xl">✦</span>
-            <span className="text-lg cos-gradient-text truncate">COS魔法工坊</span>
+            <span className="text-lg cos-gradient-text truncate">COS定制工坊</span>
           </Link>
 
           <div className="flex items-center gap-0.5 xl:gap-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={navLinkClass(pathname === item.href)}
-              >
-                <span className="mr-1">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.Icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={navLinkClass(pathname === item.href)}
+                >
+                  <Icon size={20} className="inline-block mr-1.5 -mt-0.5 align-middle shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-2 xl:gap-3 flex-shrink-0">
@@ -334,7 +345,7 @@ const NavBar: React.FC<{
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 max-w-5xl mx-auto">
           <Link href="/home" className="flex items-center gap-1.5 font-bold min-w-0">
             <span className="text-lg">✦</span>
-            <span className="text-base cos-gradient-text truncate">COS魔法工坊</span>
+            <span className="text-base cos-gradient-text truncate">COS定制工坊</span>
           </Link>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <CrystalBadge count={analyzeCount} variant="pink" size="sm" />
@@ -359,19 +370,27 @@ const NavBar: React.FC<{
         }}
         aria-label="主导航"
       >
-        <div className="grid grid-cols-4 max-w-lg mx-auto">
+        <div className="grid grid-cols-5 max-w-lg mx-auto">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
+            const Icon = item.Icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 py-2 px-1 min-h-[56px] transition-colors',
+                  'flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 min-h-[60px] transition-all',
                   active ? 'text-[#FF3CAC]' : 'text-[#7A6B99] active:bg-[rgba(255,60,172,0.08)]'
                 )}
               >
-                <span className="text-lg leading-none">{item.icon}</span>
+                <span
+                  className={cn(
+                    'inline-flex transition-transform duration-200',
+                    active ? 'scale-110 drop-shadow-[0_0_8px_rgba(255,60,172,0.45)]' : 'opacity-85'
+                  )}
+                >
+                  <Icon size={30} />
+                </span>
                 <span className={cn('text-[10px] font-medium', active && 'text-white')}>
                   {item.short}
                 </span>
