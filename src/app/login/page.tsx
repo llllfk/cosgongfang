@@ -95,7 +95,7 @@ export default function LoginPage() {
                 type="text"
                 value={account}
                 onChange={(e) => setAccount(e.target.value)}
-                placeholder="例如 hoshino / admin"
+                placeholder="输入账号"
                 className="cos-glow-input w-full px-4 py-3 text-base"
               />
             </div>
@@ -121,12 +121,6 @@ export default function LoginPage() {
               {loading ? '进入中…' : '进入定制工坊'}
             </GlowButton>
           </form>
-
-          <p className="text-center text-xs text-[#7A6B99] leading-relaxed mt-6">
-            测试账号：<span className="text-[#21E6C1]">hoshino / 123456</span>
-            <br />
-            管理员：<span className="text-[#FFE66D]">admin / admin123</span>
-          </p>
         </div>
 
         <p className="text-center mt-6 text-sm text-[#7A6B99]">
