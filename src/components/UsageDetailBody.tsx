@@ -1,6 +1,7 @@
 'use client';
 
 import type { UsageItem } from '@/api/client';
+import { PreviewableImage } from '@/components/ImageLightbox';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -121,8 +122,7 @@ export function UsageDetailBody({ item, meta }: Props) {
         <SectionLabel>当时输入</SectionLabel>
         {item.type === 'analyze' ? (
           hasAnalyzeInput ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <PreviewableImage
               src={item.inputImageUrl}
               alt="鉴定输入图"
               className="w-full max-h-48 object-contain rounded-xl border border-[rgba(255,60,172,0.25)] bg-[rgba(0,0,0,0.25)]"
@@ -152,8 +152,7 @@ export function UsageDetailBody({ item, meta }: Props) {
                 {refs.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {refs.map((src, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <PreviewableImage
                         key={`${i}-${src.slice(0, 24)}`}
                         src={src}
                         alt={`参考图 ${i + 1}`}
@@ -182,8 +181,7 @@ export function UsageDetailBody({ item, meta }: Props) {
             <p className="text-[#7A6B99]">无鉴定结果</p>
           )
         ) : hasDrawOut ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <PreviewableImage
             src={item.imageUrl}
             alt="绘梦输出"
             className="w-full max-h-[42vh] object-contain rounded-xl border border-[rgba(33,230,193,0.25)] bg-[rgba(0,0,0,0.2)]"

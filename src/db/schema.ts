@@ -44,6 +44,10 @@ export const globalConfig = pgTable('global_config', {
   id: integer('id').primaryKey().default(1),
   defaultAnalyzeCount: integer('default_analyze_count').notNull().default(2),
   defaultDrawCount: integer('default_draw_count').notNull().default(2),
+  /** 管理员微信二维码（s3: 引用或 data URL） */
+  wechatQrUrl: text('wechat_qr_url'),
+  /** 生成图右下角文字水印；空则不加 */
+  watermarkText: varchar('watermark_text', { length: 64 }).notNull().default(''),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

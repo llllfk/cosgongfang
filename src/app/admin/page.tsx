@@ -11,6 +11,7 @@ import { Modal } from '@/components/Modal';
 import { GlowSelect } from '@/components/GlowSelect';
 import { GlowNumberInput } from '@/components/GlowNumberInput';
 import { UsageDetailBody } from '@/components/UsageDetailBody';
+import { PreviewableImage } from '@/components/ImageLightbox';
 import { useToast } from '@/components/Toast';
 import { SettingsIcon, PlusIcon, EditIcon, UserIcon } from '@/components/Icons';
 import {
@@ -25,6 +26,9 @@ import {
 import type { User, GlobalConfig, UsageItem } from '@/api/client';
 import { sanitizeAccountInput, validateAccount } from '@/lib/account';
 
+const USERS_PAGE_SIZE = 12;
+const USAGE_PAGE_SIZE = 20;
+
 function formatTime(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso.slice(0, 16);
@@ -36,6 +40,12 @@ function formatTime(iso: string) {
 export default function AdminPage() {
   const { showToast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
+  const [usersTotal, setUsersTotal] = React.useState(0);
+  const [usersPage, setUsersPage] = React.useState(1);
+  const [usersLoading, setUsersLoading] = React.useState(false);
+  const [userSearch, setUserSearch] = React.useState('');
+  const [debouncedUserQ, setDebouncedUserQ] = React.useState('');
+  const [filterUsers, setFilterUsers] = React.useState<User[]>([]);
   const [config, setConfig] = React.useState<GlobalConfig | null>(null);
 
   // 模态框状态
@@ -49,6 +59,8 @@ export default function AdminPage() {
   const [savingConfig, setSavingConfig] = React.useState(false);
   const [tab, setTab] = React.useState<'users' | 'config' | 'usage'>('users');
   const [usage, setUsage] = React.useState<UsageItem[]>([]);
+  const [usageTotal, setUsageTotal] = React.useState(0);
+  const [usagePage, setUsagePage] = React.useState(1);
   const [usageLoading, setUsageLoading] = React.useState(false);
   const [usageType, setUsageType] = React.useState<'all' | 'analyze' | 'draw'>('all');
   const [usageUserId, setUsageUserId] = React.useState('');
@@ -71,15 +83,71 @@ export default function AdminPage() {
     password: '',
   });
   const [adjustForm, setAdjustForm] = React.useState({ delta: 5, type: 'analyze' as 'analyze' | 'draw' });
-  const [configForm, setConfigForm] = React.useState({ defaultAnalyzeCount: 2, defaultDrawCount: 2 });
+  const [configForm, setConfigForm] = React.useState({
+    defaultAnalyzeCount: 2,
+    defaultDrawCount: 2,
+    watermarkText: '',
+    wechatQrUrl: null as string | null,
+    hasWechatQr: false,
+  });
+  const [wechatQrDraft, setWechatQrDraft] = React.useState<string | null>(null);
+  const [clearWechatQr, setClearWechatQr] = React.useState(false);
+  const wechatQrInputRef = React.useRef<HTMLInputElement>(null);
 
-  // 加载数据
   React.useEffect(() => {
-    adminListUsers().then(setUsers).catch(() => setUsers([]));
+    const t = window.setTimeout(() => {
+      const next = userSearch.trim();
+      if (next === debouncedUserQ) return;
+      setDebouncedUserQ(next);
+      setUsersPage(1);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [userSearch, debouncedUserQ]);
+
+  const loadUsers = React.useCallback(
+    async (opts?: { page?: number; q?: string }) => {
+      const page = opts?.page ?? usersPage;
+      const q = opts?.q ?? debouncedUserQ;
+      setUsersLoading(true);
+      try {
+        const res = await adminListUsers({
+          page,
+          pageSize: USERS_PAGE_SIZE,
+          q: q || undefined,
+        });
+        setUsers(res.items);
+        setUsersTotal(res.total);
+        const maxPage = Math.max(1, Math.ceil(res.total / res.pageSize) || 1);
+        if (page > maxPage) {
+          setUsersPage(maxPage);
+        }
+      } catch {
+        setUsers([]);
+        setUsersTotal(0);
+      } finally {
+        setUsersLoading(false);
+      }
+    },
+    [usersPage, debouncedUserQ]
+  );
+
+  React.useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  React.useEffect(() => {
     getGlobalConfig()
       .then((c) => {
         setConfig(c);
-        setConfigForm(c);
+        setConfigForm({
+          defaultAnalyzeCount: c.defaultAnalyzeCount,
+          defaultDrawCount: c.defaultDrawCount,
+          watermarkText: c.watermarkText || '',
+          wechatQrUrl: c.wechatQrUrl || null,
+          hasWechatQr: !!c.hasWechatQr,
+        });
+        setWechatQrDraft(null);
+        setClearWechatQr(false);
       })
       .catch(() => {});
   }, []);
@@ -87,24 +155,38 @@ export default function AdminPage() {
   const loadUsage = React.useCallback(async () => {
     setUsageLoading(true);
     try {
-      const items = await adminListUsage({
+      const res = await adminListUsage({
         type: usageType,
         userId: usageUserId || undefined,
+        page: usagePage,
+        pageSize: USAGE_PAGE_SIZE,
       });
-      setUsage(items);
+      setUsage(res.items);
+      setUsageTotal(res.total);
+      const maxPage = Math.max(1, Math.ceil(res.total / res.pageSize) || 1);
+      if (usagePage > maxPage) {
+        setUsagePage(maxPage);
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : '加载使用记录失败', 'error');
       setUsage([]);
+      setUsageTotal(0);
     } finally {
       setUsageLoading(false);
     }
-  }, [usageType, usageUserId, showToast]);
+  }, [usageType, usageUserId, usagePage, showToast]);
 
   React.useEffect(() => {
     if (tab === 'usage') {
       loadUsage();
+      adminListUsers({ page: 1, pageSize: 100 })
+        .then((res) => setFilterUsers(res.items))
+        .catch(() => setFilterUsers([]));
     }
   }, [tab, loadUsage]);
+
+  const usersTotalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE) || 1);
+  const usageTotalPages = Math.max(1, Math.ceil(usageTotal / USAGE_PAGE_SIZE) || 1);
 
   // 招募旅者
   const handleCreate = async () => {
@@ -121,13 +203,16 @@ export default function AdminPage() {
     }
     setCreating(true);
     try {
-      const newUser = await adminCreateUser({
+      await adminCreateUser({
         ...createForm,
         account: createForm.account.trim(),
       });
-      setUsers((prev) => [...prev, newUser]);
       setCreateModalOpen(false);
       setCreateForm({ account: '', nickname: '', password: '', analyzeCount: 2, drawCount: 2 });
+      setUserSearch('');
+      setDebouncedUserQ('');
+      setUsersPage(1);
+      await loadUsers({ page: 1, q: '' });
       showToast('✨ 新旅者已加入工坊！', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '招募失败', 'error');
@@ -224,13 +309,49 @@ export default function AdminPage() {
     if (savingConfig) return;
     setSavingConfig(true);
     try {
-      const newConfig = await updateGlobalConfig(configForm);
+      const newConfig = await updateGlobalConfig({
+        defaultAnalyzeCount: configForm.defaultAnalyzeCount,
+        defaultDrawCount: configForm.defaultDrawCount,
+        watermarkText: configForm.watermarkText,
+        ...(clearWechatQr
+          ? { clearWechatQr: true }
+          : wechatQrDraft
+            ? { wechatQrImageBase64: wechatQrDraft }
+            : {}),
+      });
       setConfig(newConfig);
+      setConfigForm({
+        defaultAnalyzeCount: newConfig.defaultAnalyzeCount,
+        defaultDrawCount: newConfig.defaultDrawCount,
+        watermarkText: newConfig.watermarkText || '',
+        wechatQrUrl: newConfig.wechatQrUrl || null,
+        hasWechatQr: !!newConfig.hasWechatQr,
+      });
+      setWechatQrDraft(null);
+      setClearWechatQr(false);
       showToast('⚙️ 工坊法则已更新', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '保存失败', 'error');
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  const handleWechatQrPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('请上传图片文件', 'error');
+      return;
+    }
+    try {
+      const { compressImageFile } = await import('@/lib/image-compress');
+      const dataUrl = await compressImageFile(file, { maxEdge: 1024, quality: 0.9 });
+      setWechatQrDraft(dataUrl);
+      setClearWechatQr(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '读取二维码失败', 'error');
     }
   };
 
@@ -268,21 +389,49 @@ export default function AdminPage() {
         {/* 用户管理区 */}
         {tab === 'users' ? (
         <div className="mb-12">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <UserIcon size={20} className="text-[#FF3CAC]" />
                 旅者名册
               </h2>
-              <p className="text-sm text-[#7A6B99] mt-1">共 {users.length} 位旅者</p>
+              <p className="text-sm text-[#7A6B99] mt-1">
+                {debouncedUserQ
+                  ? `找到 ${usersTotal} 位旅者 · 第 ${usersPage}/${usersTotalPages} 页`
+                  : `共 ${usersTotal} 位旅者 · 第 ${usersPage}/${usersTotalPages} 页`}
+              </p>
             </div>
             <GlowButton onClick={() => setCreateModalOpen(true)} icon={<PlusIcon size={16} />} className="w-full sm:w-auto">
               招募旅者
             </GlowButton>
           </div>
 
+          <div className="mb-6">
+            <input
+              type="search"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="按昵称或账号搜索…"
+              className="cos-glow-input w-full sm:max-w-sm px-4 py-2.5 text-sm"
+              aria-label="按昵称或账号搜索旅者"
+            />
+          </div>
+
           {/* 角色卡网格 */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {usersLoading && users.length === 0 ? (
+            <GlowCard hoverable={false} className="p-8 text-center">
+              <p className="text-[#B8AAD4]">加载旅者名册…</p>
+            </GlowCard>
+          ) : users.length === 0 ? (
+            <GlowCard hoverable={false} className="p-8 text-center">
+              <p className="text-[#B8AAD4]">
+                {usersTotal === 0 && !debouncedUserQ
+                  ? '还没有旅者，去招募一位吧'
+                  : '没有匹配的旅者，试试其他关键词'}
+              </p>
+            </GlowCard>
+          ) : (
+          <div className={`grid sm:grid-cols-2 lg:grid-cols-3 gap-5 ${usersLoading ? 'opacity-60' : ''}`}>
             {users.map((user) => (
               <GlowCard
                 key={user.id}
@@ -349,6 +498,31 @@ export default function AdminPage() {
               </GlowCard>
             ))}
           </div>
+          )}
+
+          {usersTotalPages > 1 ? (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <GlowButton
+                variant="ghost"
+                size="sm"
+                disabled={usersPage <= 1 || usersLoading}
+                onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+              >
+                上一页
+              </GlowButton>
+              <span className="text-sm text-[#B8AAD4]">
+                {usersPage} / {usersTotalPages}
+              </span>
+              <GlowButton
+                variant="ghost"
+                size="sm"
+                disabled={usersPage >= usersTotalPages || usersLoading}
+                onClick={() => setUsersPage((p) => Math.min(usersTotalPages, p + 1))}
+              >
+                下一页
+              </GlowButton>
+            </div>
+          ) : null}
         </div>
         ) : null}
 
@@ -395,6 +569,96 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm text-[#B8AAD4] mb-2 ml-1">
+                  生成图水印文字
+                </label>
+                <input
+                  type="text"
+                  value={configForm.watermarkText}
+                  onChange={(e) =>
+                    setConfigForm((p) => ({ ...p, watermarkText: e.target.value.slice(0, 64) }))
+                  }
+                  placeholder="例如：大晓COS定制工坊（留空则不加水印）"
+                  maxLength={64}
+                  className="cos-glow-input w-full px-4 py-2.5"
+                />
+                <p className="text-xs text-[#7A6B99] mt-1.5 ml-1">
+                  绘梦工坊与设计稿出图后，会在右下角自动叠加该文字
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-[#B8AAD4] mb-2 ml-1">
+                  补充次数 · 管理员微信二维码
+                </label>
+                <p className="text-xs text-[#7A6B99] mb-3 ml-1">
+                  旅者在「我的角色卡 → 补充次数」中可扫码联系你
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div
+                    className="w-36 h-36 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0"
+                    style={{
+                      background: 'rgba(13, 8, 32, 0.6)',
+                      border: '1px solid rgba(33, 230, 193, 0.35)',
+                    }}
+                  >
+                    {clearWechatQr ? (
+                      <span className="text-xs text-[#7A6B99] px-3 text-center">保存后将清除</span>
+                    ) : wechatQrDraft || configForm.wechatQrUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={wechatQrDraft || configForm.wechatQrUrl || ''}
+                        alt="微信二维码预览"
+                        className="w-full h-full object-contain bg-white"
+                      />
+                    ) : (
+                      <span className="text-xs text-[#7A6B99] px-3 text-center">尚未上传</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={wechatQrInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleWechatQrPick}
+                    />
+                    <GlowButton
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={() => wechatQrInputRef.current?.click()}
+                    >
+                      {wechatQrDraft || configForm.hasWechatQr ? '更换二维码' : '上传二维码'}
+                    </GlowButton>
+                    {(wechatQrDraft || configForm.hasWechatQr) && !clearWechatQr ? (
+                      <GlowButton
+                        variant="danger"
+                        size="sm"
+                        type="button"
+                        onClick={() => {
+                          setWechatQrDraft(null);
+                          setClearWechatQr(true);
+                        }}
+                      >
+                        清除二维码
+                      </GlowButton>
+                    ) : null}
+                    {clearWechatQr ? (
+                      <GlowButton
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={() => setClearWechatQr(false)}
+                      >
+                        撤销清除
+                      </GlowButton>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-2 flex justify-end">
                 <GlowButton variant="accent" onClick={handleConfigSave} loading={savingConfig}>
                   {savingConfig ? '保存中…' : '保存法则'}
@@ -414,13 +678,17 @@ export default function AdminPage() {
                   📜 使用记录
                 </h2>
                 <p className="text-sm text-[#7A6B99] mt-1">
-                  查询全部旅者的鉴定 / 绘梦使用情况（共 {usage.length} 条）
+                  查询全部旅者的鉴定 / 绘梦使用情况（共 {usageTotal} 条 · 第 {usagePage}/
+                  {usageTotalPages} 页）
                 </p>
               </div>
               <div className="flex flex-wrap gap-3 items-center">
                 <GlowSelect
                   value={usageType}
-                  onChange={(v) => setUsageType(v as 'all' | 'analyze' | 'draw')}
+                  onChange={(v) => {
+                    setUsageType(v as 'all' | 'analyze' | 'draw');
+                    setUsagePage(1);
+                  }}
                   options={[
                     { value: 'all', label: '全部功能' },
                     { value: 'analyze', label: '仅鉴定' },
@@ -429,11 +697,14 @@ export default function AdminPage() {
                 />
                 <GlowSelect
                   value={usageUserId}
-                  onChange={setUsageUserId}
+                  onChange={(v) => {
+                    setUsageUserId(v);
+                    setUsagePage(1);
+                  }}
                   className="min-w-[180px]"
                   options={[
                     { value: '', label: '全部旅者' },
-                    ...users.map((u) => ({
+                    ...filterUsers.map((u) => ({
                       value: u.id,
                       label: `${u.nickname} (@${u.account})`,
                     })),
@@ -450,7 +721,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {usageLoading ? (
+            {usageLoading && usage.length === 0 ? (
               <GlowCard hoverable={false} className="p-10 text-center text-[#B8AAD4]">
                 记录读取中…
               </GlowCard>
@@ -459,7 +730,7 @@ export default function AdminPage() {
                 暂无匹配的使用记录
               </GlowCard>
             ) : (
-              <div className="space-y-3">
+              <div className={`space-y-3 ${usageLoading ? 'opacity-60' : ''}`}>
                 {usage.map((item) => (
                   <button
                     key={`${item.type}-${item.id}`}
@@ -475,8 +746,7 @@ export default function AdminPage() {
                         {(item.type === 'analyze'
                           ? item.inputImageUrl
                           : item.imageUrl || item.refImageUrls?.[0]) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <PreviewableImage
                             src={
                               item.type === 'analyze'
                                 ? item.inputImageUrl
@@ -528,6 +798,30 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+
+            {usageTotalPages > 1 ? (
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <GlowButton
+                  variant="ghost"
+                  size="sm"
+                  disabled={usagePage <= 1 || usageLoading}
+                  onClick={() => setUsagePage((p) => Math.max(1, p - 1))}
+                >
+                  上一页
+                </GlowButton>
+                <span className="text-sm text-[#B8AAD4]">
+                  {usagePage} / {usageTotalPages}
+                </span>
+                <GlowButton
+                  variant="ghost"
+                  size="sm"
+                  disabled={usagePage >= usageTotalPages || usageLoading}
+                  onClick={() => setUsagePage((p) => Math.min(usageTotalPages, p + 1))}
+                >
+                  下一页
+                </GlowButton>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -633,7 +927,7 @@ export default function AdminPage() {
                 setEditForm((p) => ({ ...p, account: sanitizeAccountInput(e.target.value) }))
               }
               className="cos-glow-input w-full px-4 py-2.5"
-              placeholder="字母或数字，至少 3 位"
+              placeholder="字母或数字，至少 6 位"
               inputMode="text"
               autoComplete="off"
             />

@@ -3,19 +3,31 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { GlowButton } from '@/components/GlowButton';
-import { loginApi } from '@/api/client';
+import { loginApi, registerApi } from '@/api/client';
 import { SparklesIcon } from '@/components/Icons';
+import { sanitizeAccountInput, validateAccount } from '@/lib/account';
+import { validatePassword } from '@/lib/password';
+
+type AuthMode = 'login' | 'register';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = React.useState<AuthMode>('login');
   const [account, setAccount] = React.useState('');
+  const [nickname, setNickname] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [passwordConfirm, setPasswordConfirm] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
+  const switchMode = (next: AuthMode) => {
+    setMode(next);
+    setError('');
+    setPassword('');
+    setPasswordConfirm('');
+  };
+
+  const handleLogin = async () => {
     if (!account.trim() || !password) {
       setError('请输入账号和密码');
       return;
@@ -29,6 +41,41 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : '登录失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const normalizedAccount = validateAccount(account);
+      const name = nickname.trim();
+      if (!name) throw new Error('请填写昵称');
+      if (name.length > 32) throw new Error('昵称过长');
+      const pwd = validatePassword(password);
+      if (pwd !== passwordConfirm) throw new Error('两次输入的密码不一致');
+
+      await registerApi({
+        account: normalizedAccount,
+        nickname: name,
+        password: pwd,
+        passwordConfirm,
+      });
+      router.push('/home');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '注册失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+    if (mode === 'login') {
+      await handleLogin();
+    } else {
+      await handleRegister();
     }
   };
 
@@ -71,7 +118,7 @@ export default function LoginPage() {
               '0 0 60px rgba(255, 60, 172, 0.2), 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           }}
         >
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div
               className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 cos-float"
               style={{
@@ -82,11 +129,30 @@ export default function LoginPage() {
             >
               <SparklesIcon size={32} className="text-[#FF3CAC]" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold cos-gradient-text mb-2">COS定制工坊</h1>
+            <h1 className="text-3xl md:text-4xl font-bold cos-gradient-text mb-2">大晓COS定制工坊</h1>
             <p className="text-sm text-[#B8AAD4]">✦ 二次元服饰鉴定 · 绘梦设计工坊 ✦</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <div className="flex justify-center mb-6">
+            <div className="cos-tab-capsule flex-shrink-0">
+              <button
+                type="button"
+                className={mode === 'login' ? 'active' : ''}
+                onClick={() => switchMode('login')}
+              >
+                登录
+              </button>
+              <button
+                type="button"
+                className={mode === 'register' ? 'active' : ''}
+                onClick={() => switchMode('register')}
+              >
+                注册
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">
                 旅者之名（账号）
@@ -94,31 +160,72 @@ export default function LoginPage() {
               <input
                 type="text"
                 value={account}
-                onChange={(e) => setAccount(e.target.value)}
-                placeholder="输入账号"
+                onChange={(e) =>
+                  setAccount(
+                    mode === 'register' ? sanitizeAccountInput(e.target.value) : e.target.value
+                  )
+                }
+                placeholder="字母或数字，至少 6 位"
+                autoComplete="username"
                 className="cos-glow-input w-full px-4 py-3 text-base"
               />
             </div>
 
+            {mode === 'register' ? (
+              <div>
+                <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">昵称</label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="展示用的昵称"
+                  autoComplete="nickname"
+                  maxLength={32}
+                  className="cos-glow-input w-full px-4 py-3 text-base"
+                />
+              </div>
+            ) : null}
+
             <div>
-              <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">
-                密码
-              </label>
+              <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">密码</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="输入密码"
+                placeholder={
+                  mode === 'register' ? '8–20 位，字母 / 数字 / 特殊符号' : '输入密码'
+                }
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 className="cos-glow-input w-full px-4 py-3 text-base"
               />
             </div>
 
-            {error ? (
-              <p className="text-sm text-[#FF3CAC] text-center">{error}</p>
+            {mode === 'register' ? (
+              <div>
+                <label className="block text-sm font-medium text-[#B8AAD4] mb-2 ml-1">
+                  确认密码
+                </label>
+                <input
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="再次输入密码"
+                  autoComplete="new-password"
+                  className="cos-glow-input w-full px-4 py-3 text-base"
+                />
+              </div>
             ) : null}
 
+            {error ? <p className="text-sm text-[#FF3CAC] text-center">{error}</p> : null}
+
             <GlowButton type="submit" size="lg" loading={loading} className="w-full mt-6">
-              {loading ? '进入中…' : '进入定制工坊'}
+              {loading
+                ? mode === 'login'
+                  ? '进入中…'
+                  : '注册中…'
+                : mode === 'login'
+                  ? '进入定制工坊'
+                  : '注册并进入工坊'}
             </GlowButton>
           </form>
         </div>

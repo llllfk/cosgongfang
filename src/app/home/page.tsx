@@ -49,7 +49,7 @@ export default function HomePage() {
             <span>欢迎回来，{user?.nickname || '旅者'}</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-4 cos-gradient-text leading-tight">
-            COS定制工坊
+            大晓COS定制工坊
           </h1>
           <p className="text-lg text-[#B8AAD4] max-w-xl mx-auto">
             AI 拆解二次元服饰的秘密，绘梦生成你的专属设计稿

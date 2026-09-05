@@ -60,6 +60,11 @@ export interface DrawImage {
 export interface GlobalConfig {
   defaultAnalyzeCount: number;
   defaultDrawCount: number;
+  /** 已解析的可展示二维码 URL（可能为空） */
+  wechatQrUrl?: string | null;
+  hasWechatQr?: boolean;
+  /** 生成图文字水印；空表示不加 */
+  watermarkText?: string;
 }
 
 export interface SubmitAnalyzeParams {
@@ -173,6 +178,20 @@ export async function loginApi(account: string, password: string): Promise<User>
   const data = await request<{ user: User }>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ account, password }),
+  });
+  syncLocalUser(data.user);
+  return data.user;
+}
+
+export async function registerApi(params: {
+  account: string;
+  nickname: string;
+  password: string;
+  passwordConfirm: string;
+}): Promise<User> {
+  const data = await request<{ user: User }>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(params),
   });
   syncLocalUser(data.user);
   return data.user;
@@ -351,20 +370,43 @@ export async function getMyUsage(): Promise<UsageItem[]> {
 export async function adminListUsage(params?: {
   type?: 'all' | 'analyze' | 'draw';
   userId?: string;
-}): Promise<UsageItem[]> {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ items: UsageItem[]; total: number; page: number; pageSize: number }> {
   const q = new URLSearchParams();
   if (params?.type && params.type !== 'all') q.set('type', params.type);
   if (params?.userId) q.set('userId', params.userId);
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.pageSize) q.set('pageSize', String(params.pageSize));
   const qs = q.toString();
-  const data = await request<{ items: UsageItem[] }>(
+  return request<{ items: UsageItem[]; total: number; page: number; pageSize: number }>(
     `/api/admin/usage${qs ? `?${qs}` : ''}`
   );
-  return data.items;
 }
 
-export async function adminListUsers(): Promise<User[]> {
-  const data = await request<{ items: User[] }>('/api/admin/users');
-  return data.items;
+export interface AdminListUsersParams {
+  page?: number;
+  pageSize?: number;
+  /** 昵称或账号模糊搜索 */
+  q?: string;
+}
+
+export interface AdminListUsersResult {
+  items: User[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function adminListUsers(
+  params?: AdminListUsersParams
+): Promise<AdminListUsersResult> {
+  const q = new URLSearchParams();
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.pageSize) q.set('pageSize', String(params.pageSize));
+  if (params?.q?.trim()) q.set('q', params.q.trim());
+  const qs = q.toString();
+  return request<AdminListUsersResult>(`/api/admin/users${qs ? `?${qs}` : ''}`);
 }
 
 export async function adminCreateUser(params: AdminCreateUserParams): Promise<User> {
@@ -400,9 +442,21 @@ export async function getGlobalConfig(): Promise<GlobalConfig> {
   return request<GlobalConfig>('/api/admin/config');
 }
 
-export async function updateGlobalConfig(config: Partial<GlobalConfig>): Promise<GlobalConfig> {
+export async function updateGlobalConfig(
+  config: Partial<GlobalConfig> & {
+    wechatQrImageBase64?: string;
+    clearWechatQr?: boolean;
+  }
+): Promise<GlobalConfig> {
   return request<GlobalConfig>('/api/admin/config', {
     method: 'PUT',
     body: JSON.stringify(config),
   });
+}
+
+export async function getContactQr(): Promise<{
+  wechatQrUrl: string | null;
+  hasWechatQr: boolean;
+}> {
+  return request('/api/contact');
 }

@@ -10,8 +10,10 @@ import { SectionTitle } from '@/components/SectionTitle';
 import { Modal } from '@/components/Modal';
 import { GlowButton } from '@/components/GlowButton';
 import { UsageDetailBody } from '@/components/UsageDetailBody';
+import { PreviewableImage } from '@/components/ImageLightbox';
 import { UserIcon, GemIcon, SettingsIcon, SparklesIcon } from '@/components/Icons';
-import { getCurrentUser, getMyUsage, type User, type UsageItem } from '@/api/client';
+import { getCurrentUser, getMyUsage, getContactQr, type User, type UsageItem } from '@/api/client';
+import { useToast } from '@/components/Toast';
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -23,11 +25,15 @@ function formatTime(iso: string) {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [user, setUser] = React.useState<User | null>(null);
   const [usage, setUsage] = React.useState<UsageItem[]>([]);
   const [loadingUsage, setLoadingUsage] = React.useState(true);
   const [filter, setFilter] = React.useState<'all' | 'analyze' | 'draw'>('all');
   const [detail, setDetail] = React.useState<UsageItem | null>(null);
+  const [quotaModalOpen, setQuotaModalOpen] = React.useState(false);
+  const [contactQr, setContactQr] = React.useState<string | null>(null);
+  const [contactLoading, setContactLoading] = React.useState(false);
 
   const load = React.useCallback(() => {
     getCurrentUser()
@@ -58,6 +64,20 @@ export default function ProfilePage() {
   }, [load]);
 
   const filtered = usage.filter((item) => (filter === 'all' ? true : item.type === filter));
+
+  const openQuotaModal = async () => {
+    setQuotaModalOpen(true);
+    setContactLoading(true);
+    try {
+      const data = await getContactQr();
+      setContactQr(data.wechatQrUrl);
+    } catch (err) {
+      setContactQr(null);
+      showToast(err instanceof Error ? err.message : '加载联系方式失败', 'error');
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -227,8 +247,7 @@ export default function ProfilePage() {
                   >
                     <div className="flex items-start gap-4">
                       {(item.inputImageUrl || item.imageUrl || item.refImageUrls?.[0]) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <PreviewableImage
                           src={
                             item.type === 'analyze'
                               ? item.inputImageUrl
@@ -280,14 +299,14 @@ export default function ProfilePage() {
         <SectionTitle title="更多操作" icon={<SettingsIcon size={20} className="text-[#B8AAD4]" />} />
 
         <div className="grid md:grid-cols-3 gap-4 mt-6 mb-8">
-          <GlowCard className="p-5">
+          <GlowCard className="p-5" onClick={openQuotaModal}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[rgba(255,230,109,0.15)] border border-[rgba(255,230,109,0.3)] flex items-center justify-center">
                 💎
               </div>
               <div>
                 <h4 className="font-bold text-white text-sm">补充次数</h4>
-                <p className="text-xs text-[#7A6B99]">联系管理员获取次数</p>
+                <p className="text-xs text-[#7A6B99]">扫管理员微信二维码联系</p>
               </div>
             </div>
           </GlowCard>
@@ -339,6 +358,39 @@ export default function ProfilePage() {
             meta={<p className="text-[#7A6B99]">{formatTime(detail.createdAt)}</p>}
           />
         ) : null}
+      </Modal>
+
+      <Modal
+        open={quotaModalOpen}
+        onClose={() => setQuotaModalOpen(false)}
+        title="补充次数"
+        footer={
+          <GlowButton variant="ghost" size="sm" onClick={() => setQuotaModalOpen(false)}>
+            关闭
+          </GlowButton>
+        }
+      >
+        <div className="text-center space-y-4 py-2">
+          <p className="text-sm text-[#B8AAD4]">
+            请使用微信扫描下方二维码，联系管理员补充鉴定 / 绘梦次数
+          </p>
+          {contactLoading ? (
+            <p className="text-sm text-[#7A6B99] py-10">加载二维码中…</p>
+          ) : contactQr ? (
+            <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={contactQr}
+                alt="管理员微信二维码"
+                className="w-56 h-56 object-contain rounded-2xl bg-white p-2 border border-[rgba(255,230,109,0.35)]"
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-[#FF8FA0] py-8">
+              管理员尚未上传微信二维码，请稍后再试或通过其他方式联系。
+            </p>
+          )}
+        </div>
       </Modal>
     </PageShell>
   );

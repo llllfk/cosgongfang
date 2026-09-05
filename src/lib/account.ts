@@ -11,7 +11,7 @@ export function sanitizeAccountInput(raw: string) {
 export function validateAccount(account: string): string {
   const a = String(account || '').trim();
   if (!a) throw new Error('请填写账号');
-  if (a.length < 3) throw new Error('账号至少 3 位字母或数字');
+  if (a.length < 6) throw new Error('账号至少 6 位字母或数字');
   if (a.length > 32) throw new Error('账号最多 32 位');
   if (!ACCOUNT_RE.test(a)) {
     throw new Error('账号仅支持字母或数字组合，不能包含特殊字符和中文');

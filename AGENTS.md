@@ -1,4 +1,4 @@
-# AGENTS.md — COS定制工坊
+# AGENTS.md — 大晓COS定制工坊
 
 ## 项目概览
 
@@ -71,7 +71,7 @@ src/
 | `submitAnalyze` | 提交服饰鉴定 | imageBase64 | AnalyzeResult |
 | `text2img` | 文生图 | prompt, style | DrawImage |
 | `img2img` | 图生图 | imageBase64, prompt, style | DrawImage |
-| `adminListUsers` | 管理端用户列表 | - | User[] |
+| `adminListUsers` | 管理端用户列表 | page?, pageSize?, q? | {items, total, page, pageSize} |
 | `adminCreateUser` | 招募旅者 | account,nickname,password,analyzeCount,drawCount | User |
 | `adminUpdateUser` | 编辑角色卡 | id, nickname?, count? | User |
 | `adminAdjustQuota` | 补充次数 | userId, type, delta | User |

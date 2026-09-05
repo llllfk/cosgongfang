@@ -298,7 +298,7 @@ const NavBar: React.FC<{
         >
           <Link href="/home" className="flex items-center gap-2 font-bold min-w-0">
             <span className="text-xl">✦</span>
-            <span className="text-lg cos-gradient-text truncate">COS定制工坊</span>
+            <span className="text-lg cos-gradient-text truncate">大晓COS定制工坊</span>
           </Link>
 
           <div className="flex items-center gap-0.5 xl:gap-1">
@@ -345,7 +345,7 @@ const NavBar: React.FC<{
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 max-w-5xl mx-auto">
           <Link href="/home" className="flex items-center gap-1.5 font-bold min-w-0">
             <span className="text-lg">✦</span>
-            <span className="text-base cos-gradient-text truncate">COS定制工坊</span>
+            <span className="text-base cos-gradient-text truncate">大晓COS定制工坊</span>
           </Link>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <CrystalBadge count={analyzeCount} variant="pink" size="sm" />

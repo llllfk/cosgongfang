@@ -62,7 +62,7 @@ export function formatAnalyzeReportMarkdown(result: AnalyzeResult): string {
       report.toPatternMaker,
       '',
       '——',
-      '由 COS定制工坊 生成，请工作室对照角色参考图核对细节。',
+      '由 大晓COS定制工坊 生成，请工作室对照角色参考图核对细节。',
       '',
     ]
       .filter((x) => x !== '')
@@ -86,7 +86,7 @@ export function formatAnalyzeReportMarkdown(result: AnalyzeResult): string {
     lines('工艺难点', result.craftDifficulties || []),
     lines('打版要点', result.patternTips || []),
     '——',
-    '由 COS定制工坊 生成，请工作室对照角色参考图核对细节。',
+    '由 大晓COS定制工坊 生成，请工作室对照角色参考图核对细节。',
     '',
   ].join('\n');
 }
@@ -234,7 +234,7 @@ function buildReportBlocks(result: AnalyzeResult): DocBlock[] {
     pushList('打版要点', result.patternTips || []);
   }
 
-  blocks.push({ type: 'p', text: '由 COS定制工坊 生成，请工作室对照角色参考图核对细节。' });
+  blocks.push({ type: 'p', text: '由 大晓COS定制工坊 生成，请工作室对照角色参考图核对细节。' });
   return blocks;
 }
 

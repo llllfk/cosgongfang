@@ -7,6 +7,7 @@ import { jsonError, jsonOk } from '@/lib/api-response';
 import { persistImage, persistRefImages, cosStoragePath } from '@/lib/coze-storage';
 import { resolveStoredImageUrl, serializeRefImagesForStorage } from '@/lib/usage-media';
 import { formatDesignRecordPrompt } from '@/lib/design-prompt-display';
+import { applyConfiguredWatermark } from '@/lib/watermark';
 
 /** 单张设计稿；Seedream 可能较慢 */
 export const maxDuration = 300;
@@ -78,6 +79,8 @@ export async function POST(req: Request) {
       console.error('[design] ark failed', view, err);
       throw err;
     }
+
+    arkImageUrl = await applyConfiguredWatermark(arkImageUrl);
 
     const [updated] = await db
       .update(users)

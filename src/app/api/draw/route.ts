@@ -7,6 +7,7 @@ import { jsonError, jsonOk } from '@/lib/api-response';
 import { persistImage, persistRefImages, cosStoragePath } from '@/lib/coze-storage';
 import { resolveStoredImageUrl, serializeRefImagesForStorage } from '@/lib/usage-media';
 import { displayDrawPrompt } from '@/lib/design-prompt-display';
+import { applyConfiguredWatermark } from '@/lib/watermark';
 
 /** Seedream Pro 可能要 1~2 分钟 */
 export const maxDuration = 300;
@@ -78,6 +79,8 @@ async function createDraw(params: {
     console.error('[draw] ark failed', err);
     throw err;
   }
+
+  arkImageUrl = await applyConfiguredWatermark(arkImageUrl);
 
   const [updated] = await db
     .update(users)
